@@ -1,0 +1,1 @@
+CREATE INDEX `idx_date_source_type` ON `observations` (`observed_at`,`source`,`type`);

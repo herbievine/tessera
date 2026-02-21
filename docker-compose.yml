@@ -1,0 +1,52 @@
+services:
+  garmin:
+    build:
+      context: ./garmin-service
+      dockerfile: Dockerfile
+    ports:
+      - "3011:3011"
+    env_file:
+      - ./garmin-service/.env
+    volumes:
+      - ./data/garmin-tokens:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3011/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "3010:3010"
+    env_file:
+      - ./api/.env
+    environment:
+      - DB_FILE_NAME=./data/sqlite.db
+    volumes:
+      - ./api/data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3010/api/auth/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    # env_file:
+    #   - ./web/.env
+    environment:
+      - VITE_API_URL=${BASE_URL:-http://localhost:3010}
+    restart: unless-stopped
+    depends_on:
+      - api

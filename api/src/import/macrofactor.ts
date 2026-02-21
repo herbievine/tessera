@@ -1,0 +1,165 @@
+import * as XLSX from "xlsx";
+import { sql } from "drizzle-orm";
+import { db } from "../db/index.ts";
+import { macrofactorDaily } from "../db/schema.ts";
+import { safeParse } from "../utils/number.ts";
+import { parseExcelDate } from "../utils/excel.ts";
+
+export async function importDataFromMacrofactor(fileAsBase64: string) {
+	const buffer = Buffer.from(fileAsBase64, "base64");
+	const workbook = XLSX.read(buffer, { type: "buffer" });
+
+	const sheetName = workbook.SheetNames[0]!;
+	const worksheet = workbook.Sheets[sheetName]!;
+
+	const entries = XLSX.utils.sheet_to_json(worksheet, {
+		defval: null,
+		raw: true,
+	}) as Record<string, string | number | null>[];
+
+	const parsedEntries = entries.map((e) => ({
+		date: parseExcelDate(e["Date"]),
+
+		expenditure: safeParse(e["Expenditure"]),
+		trendWeightKg: safeParse(e["Trend Weight (kg)"]),
+		weightKg: safeParse(e["Weight (kg)"]),
+		caloriesKcal: safeParse(e["Calories (kcal)"]),
+		proteinG: safeParse(e["Protein (g)"]),
+		fatG: safeParse(e["Fat (g)"]),
+		carbsG: safeParse(e["Carbs (g)"]),
+		targetCaloriesKcal: safeParse(e["Target Calories (kcal)"]),
+		targetProteinG: safeParse(e["Target Protein (g)"]),
+		targetFatG: safeParse(e["Target Fat (g)"]),
+		targetCarbsG: safeParse(e["Target Carbs (g)"]),
+		steps: safeParse(e["Steps"]),
+		alcoholG: safeParse(e["Alcohol (g)"]),
+		b12CobalaminMcg: safeParse(e["B12, Cobalamin (mcg)"]),
+		b1ThiamineMg: safeParse(e["B1, Thiamine (mg)"]),
+		b2RiboflavinMg: safeParse(e["B2, Riboflavin (mg)"]),
+		b3NiacinMg: safeParse(e["B3, Niacin (mg)"]),
+		b5PantothenicAcidMg: safeParse(e["B5, Pantothenic Acid (mg)"]),
+		b6PyridoxineMg: safeParse(e["B6, Pyridoxine (mg)"]),
+		caffeineMg: safeParse(e["Caffeine (mg)"]),
+		calciumMg: safeParse(e["Calcium (mg)"]),
+		cholesterolMg: safeParse(e["Cholesterol (mg)"]),
+		cholineMg: safeParse(e["Choline (mg)"]),
+		copperMg: safeParse(e["Copper (mg)"]),
+		cysteineG: safeParse(e["Cysteine (g)"]),
+		monounsaturatedFatG: safeParse(e["Monounsaturated Fat (g)"]),
+		polyunsaturatedFatG: safeParse(e["Polyunsaturated Fat (g)"]),
+		saturatedFatG: safeParse(e["Saturated Fat (g)"]),
+		transFatG: safeParse(e["Trans Fat (g)"]),
+		fiberG: safeParse(e["Fiber (g)"]),
+		folateMcg: safeParse(e["Folate (mcg)"]),
+		histidineG: safeParse(e["Histidine (g)"]),
+		ironMg: safeParse(e["Iron (mg)"]),
+		isoleucineG: safeParse(e["Isoleucine (g)"]),
+		leucineG: safeParse(e["Leucine (g)"]),
+		lysineG: safeParse(e["Lysine (g)"]),
+		magnesiumMg: safeParse(e["Magnesium (mg)"]),
+		manganeseMg: safeParse(e["Manganese (mg)"]),
+		methionineG: safeParse(e["Methionine (g)"]),
+		omega3AlaG: safeParse(e["Omega-3 ALA (g)"]),
+		omega3DhaG: safeParse(e["Omega-3 DHA (g)"]),
+		omega3EpaG: safeParse(e["Omega-3 EPA (g)"]),
+		omega3G: safeParse(e["Omega-3 (g)"]),
+		omega6G: safeParse(e["Omega-6 (g)"]),
+		phenylalanineG: safeParse(e["Phenylalanine (g)"]),
+		phosphorusMg: safeParse(e["Phosphorus (mg)"]),
+		potassiumMg: safeParse(e["Potassium (mg)"]),
+		seleniumMcg: safeParse(e["Selenium (mcg)"]),
+		sodiumMg: safeParse(e["Sodium (mg)"]),
+		starchG: safeParse(e["Starch (g)"]),
+		sugarsG: safeParse(e["Sugars (g)"]),
+		sugarsAddedG: safeParse(e["Sugars Added (g)"]),
+		threonineG: safeParse(e["Threonine (g)"]),
+		tryptophanG: safeParse(e["Tryptophan (g)"]),
+		tyrosineG: safeParse(e["Tyrosine (g)"]),
+		valineG: safeParse(e["Valine (g)"]),
+		vitaminAMcg: safeParse(e["Vitamin A (mcg)"]),
+		vitaminCMg: safeParse(e["Vitamin C (mg)"]),
+		vitaminDMcg: safeParse(e["Vitamin D (mcg)"]),
+		vitaminEMg: safeParse(e["Vitamin E (mg)"]),
+		vitaminKMcg: safeParse(e["Vitamin K (mcg)"]),
+		waterG: safeParse(e["Water (g)"]),
+		zincMg: safeParse(e["Zinc (mg)"]),
+
+		raw: JSON.stringify(e),
+	}));
+
+	const saved = await db
+		.insert(macrofactorDaily)
+		.values(parsedEntries)
+		.onConflictDoUpdate({
+			target: macrofactorDaily.date,
+			set: {
+				expenditure: sql`excluded.expenditure`,
+				trendWeightKg: sql`excluded.trend_weight_kg`,
+				weightKg: sql`excluded.weight_kg`,
+				caloriesKcal: sql`excluded.calories_kcal`,
+				proteinG: sql`excluded.protein_g`,
+				fatG: sql`excluded.fat_g`,
+				carbsG: sql`excluded.carbs_g`,
+				targetCaloriesKcal: sql`excluded.target_calories_kcal`,
+				targetProteinG: sql`excluded.target_protein_g`,
+				targetFatG: sql`excluded.target_fat_g`,
+				targetCarbsG: sql`excluded.target_carbs_g`,
+				steps: sql`excluded.step`,
+				alcoholG: sql`excluded.alcohol_g`,
+				b12CobalaminMcg: sql`excluded.b12_cobalamin_mcg`,
+				b1ThiamineMg: sql`excluded.b1_thiamine_mg`,
+				b2RiboflavinMg: sql`excluded.b2_riboflavin_mg`,
+				b3NiacinMg: sql`excluded.b3_niacin_mg`,
+				b5PantothenicAcidMg: sql`excluded.b5_pantothenic_acid_mg`,
+				b6PyridoxineMg: sql`excluded.b6_pyridoxine_mg`,
+				caffeineMg: sql`excluded.caffeine_mg`,
+				calciumMg: sql`excluded.calcium_mg`,
+				cholesterolMg: sql`excluded.cholesterol_mg`,
+				cholineMg: sql`excluded.choline_mg`,
+				copperMg: sql`excluded.copper_mg`,
+				cysteineG: sql`excluded.cysteine_g`,
+				monounsaturatedFatG: sql`excluded.monounsaturated_fat_g`,
+				polyunsaturatedFatG: sql`excluded.polyunsaturated_fat_g`,
+				saturatedFatG: sql`excluded.saturated_fat_g`,
+				transFatG: sql`excluded.trans_fat_g`,
+				fiberG: sql`excluded.fiber_g`,
+				folateMcg: sql`excluded.folate_mcg`,
+				histidineG: sql`excluded.histidine_g`,
+				ironMg: sql`excluded.iron_mg`,
+				isoleucineG: sql`excluded.isoleucine_g`,
+				leucineG: sql`excluded.leucine_g`,
+				lysineG: sql`excluded.lysine_g`,
+				magnesiumMg: sql`excluded.magnesium_mg`,
+				manganeseMg: sql`excluded.manganese_mg`,
+				methionineG: sql`excluded.methionine_g`,
+				omega3AlaG: sql`excluded.omega3_ala_g`,
+				omega3DhaG: sql`excluded.omega3_dha_g`,
+				omega3EpaG: sql`excluded.omega3_epa_g`,
+				omega3G: sql`excluded.omega3_g`,
+				omega6G: sql`excluded.omega6_g`,
+				phenylalanineG: sql`excluded.phenylalanine_g`,
+				phosphorusMg: sql`excluded.phosphorus_mg`,
+				potassiumMg: sql`excluded.potassium_mg`,
+				seleniumMcg: sql`excluded.selenium_mcg`,
+				sodiumMg: sql`excluded.sodium_mg`,
+				starchG: sql`excluded.starch_g`,
+				sugarsG: sql`excluded.sugars_g`,
+				sugarsAddedG: sql`excluded.sugars_added_g`,
+				threonineG: sql`excluded.threonine_g`,
+				tryptophanG: sql`excluded.tryptophan_g`,
+				tyrosineG: sql`excluded.tyrosine_g`,
+				valineG: sql`excluded.valine_g`,
+				vitaminAMcg: sql`excluded.vitamin_a_mcg`,
+				vitaminCMg: sql`excluded.vitamin_c_mg`,
+				vitaminDMcg: sql`excluded.vitamin_d_mcg`,
+				vitaminEMg: sql`excluded.vitamin_e_mg`,
+				vitaminKMcg: sql`excluded.vitamin_k_mcg`,
+				waterG: sql`excluded.water_g`,
+				zincMg: sql`excluded.zinc_mg`,
+				raw: sql`excluded.raw`,
+			},
+		})
+		.returning();
+
+	return saved;
+}

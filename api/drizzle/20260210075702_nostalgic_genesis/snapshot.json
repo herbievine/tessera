@@ -1,0 +1,1020 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"id": "6d28654d-7821-40b5-a611-9b5d64112dc8",
+	"prevIds": ["dcb2d613-256c-4b85-b120-8acb4776984d"],
+	"ddl": [
+		{
+			"name": "integrations",
+			"entityType": "tables"
+		},
+		{
+			"name": "macrofactor_daily",
+			"entityType": "tables"
+		},
+		{
+			"name": "observations",
+			"entityType": "tables"
+		},
+		{
+			"name": "users",
+			"entityType": "tables"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "vendor",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "access_token",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "refresh_token",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "external_user_id",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "scope",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires_at",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "integrations"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "date",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expenditure",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "trend_weight_kg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "weight_kg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "calories_kcal",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "protein_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "fat_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "carbs_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "target_calories_kcal",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "target_protein_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "target_fat_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "target_carbs_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "step",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "alcohol_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b12_cobalamin_mcg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b1_thiamine_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b2_riboflavin_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b3_niacin_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b5_pantothenic_acid_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b6_pyridoxine_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "caffeine_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "calcium_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "cholesterol_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "choline_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "copper_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "cysteine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "monounsaturated_fat_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "polyunsaturated_fat_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "saturated_fat_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "trans_fat_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "fiber_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "folate_mcg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "histidine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "iron_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "isoleucine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "leucine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "lysine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "magnesium_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "manganese_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "methionine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "omega3_ala_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "omega3_dha_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "omega3_epa_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "omega3_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "omega6_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "phenylalanine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "phosphorus_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "potassium_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "selenium_mcg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "sodium_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "starch_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "sugars_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "sugars_added_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "threonine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "tryptophan_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "tyrosine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "valine_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "vitamin_a_mcg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "vitamin_c_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "vitamin_d_mcg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "vitamin_e_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "vitamin_k_mcg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "water_g",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "real",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "zinc_mg",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "imported_at",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "raw",
+			"entityType": "columns",
+			"table": "macrofactor_daily"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "source",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "type",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "label",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "unit",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "real",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "value",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "observed_at",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_id",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "integration_id",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "observations"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "email",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "password",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "api_key",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "created_at",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "integrations_pk",
+			"table": "integrations",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "macrofactor_daily_pk",
+			"table": "macrofactor_daily",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "observations_pk",
+			"table": "observations",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "users_pk",
+			"table": "users",
+			"entityType": "pks"
+		},
+		{
+			"columns": [
+				{
+					"value": "date",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_date",
+			"entityType": "indexes",
+			"table": "macrofactor_daily"
+		},
+		{
+			"columns": [
+				{
+					"value": "user_id",
+					"isExpression": false
+				},
+				{
+					"value": "observed_at",
+					"isExpression": false
+				},
+				{
+					"value": "source",
+					"isExpression": false
+				},
+				{
+					"value": "type",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_date_source_type",
+			"entityType": "indexes",
+			"table": "observations"
+		},
+		{
+			"columns": ["user_id", "observed_at", "type", "source"],
+			"nameExplicit": false,
+			"name": "observations_user_id_observed_at_type_source_unique",
+			"entityType": "uniques",
+			"table": "observations"
+		}
+	],
+	"renames": []
+}

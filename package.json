@@ -1,0 +1,19 @@
+{
+  "name": "tessera",
+  "private": true,
+  "workspaces": ["web", "api"],
+  "devDependencies": {
+    "@biomejs/biome": "2.4.4",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
+    "@tanstack/react-form": "^1.28.3",
+    "@tanstack/react-query": "^5.90.21",
+    "hono": "^4.12.0",
+    "zod": "^4.3.6"
+  }
+}
