@@ -22,7 +22,7 @@ import logging
 import os
 import sys
 from datetime import date, datetime, timedelta
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -44,7 +44,7 @@ class Config:
     password: str | None = os.getenv("GARMIN_PASSWORD")
     tokenstore: str = os.getenv("GARMINTOKENS") or "/data/.garminconnect"
     port: int = int(os.getenv("PORT", "3011"))
-    admin_key: str | None = os.getenv("ADMIN_KEY")
+    admin_key: str | None = os.getenv("GARMIN_ADMIN_KEY")
 
     today: date = date.today()
     week_start: date = today - timedelta(days=7)
@@ -110,9 +110,9 @@ def get_date_param(query: dict, param: str, default: date) -> date:
 def format_sleep_data(raw: dict) -> dict:
     """Format sleep data into structured format."""
     dto = raw.get("dailySleepDTO", {})
-    
+
     levels = dto.get("sleepLevels", {})
-    
+
     return {
         "date": dto.get("sleepStartTimeGMT", "")[:10],
         "sleep_score": dto.get("sleepScore"),
@@ -137,7 +137,7 @@ def format_sleep_data(raw: dict) -> dict:
 def format_heart_rate_data(raw: dict) -> dict:
     """Format heart rate data into per-minute timeseries."""
     heart_rates = raw.get("heartRateValues", [])
-    
+
     timeseries = []
     for hr in heart_rates:
         timestamp_ms = hr[0]
@@ -148,7 +148,7 @@ def format_heart_rate_data(raw: dict) -> dict:
             "time": dt.isoformat(),
             "bpm": bpm,
         })
-    
+
     return {
         "date": raw.get("calendarDate", ""),
         "resting_hr": raw.get("restingHeartRate"),
@@ -451,35 +451,35 @@ class GarminHandler(BaseHTTPRequestHandler):
         if path == "/update-credentials":
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
-            
+
             try:
                 data = json.loads(post_data.decode())
                 email = data.get('email')
                 password = data.get('password')
-                
+
                 if not email or not password:
                     self.send_error_response("Email and password required", 400)
                     return
 
                 logger.info(f"Updating credentials for {email}")
-                
+
                 # Clear existing tokens to force re-login
                 tokenstore = Path(config.tokenstore)
                 for f in ["oauth1_token.json", "oauth2_token.json"]:
                     token_file = tokenstore / f
                     if token_file.exists():
                         token_file.unlink()
-                
+
                 # Login with new credentials
                 garmin = Garmin(email, password)
                 token1, token2 = garmin.login("")
                 garth.save(str(tokenstore))
-                
+
                 global api
                 api = garmin
-                
+
                 self.send_json_response({"status": "success", "message": "Credentials updated and tokens stored"})
-                
+
             except Exception as e:
                 logger.exception("Failed to update credentials")
                 self.send_error_response(f"Failed to update credentials: {str(e)}")
