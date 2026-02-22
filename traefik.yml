@@ -1,0 +1,28 @@
+http:
+  routers:
+    tessera-web:
+      rule: "Host(`tessera.herbievine.com`)"
+      service: tessera-web
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
+    tessera-api:
+      rule: "Host(`api.tessera.herbievine.com`)"
+      service: tessera-api
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    tessera-web:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3000"
+
+    tessera-api:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3010"
