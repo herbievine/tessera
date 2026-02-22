@@ -61,5 +61,5 @@ Bun.serve({
 	},
 });
 
-console.log(`HTTP Server running on http://localhost:3010/api`);
-console.log(`MCP Server running on http://localhost:3010/mcp`);
+console.log(`HTTP Server running on ${Bun.env.BASE_URL}/api`);
+console.log(`MCP Server running on ${Bun.env.BASE_URL}/mcp`);

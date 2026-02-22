@@ -46,8 +46,10 @@ app.post(
 			return c.json({ error: "User already connected" }, 400);
     }
 
+    const garminApiUrl = process.env.GARMIN_API_URL || "http://localhost:3011";
+
     const { data: garmin } = await fetcher(
-      'http://localhost:3011/user/profile',
+      `${garminApiUrl}/user/profile`,
       z.object({ id: z.number() }),
       {
         headers: {
@@ -82,7 +84,7 @@ app.post(
 
 				if (user?.apiKeyHash) {
 					const y = await fetch(
-						`http://localhost:3010/api/cron/garmin?startDate=${data.startDate}`,
+						`${Bun.env.BASE_URL}/api/cron/garmin?startDate=${data.startDate}`,
 						{
               method: "POST",
               headers: { Authorization: `Bearer ${user.apiKeyHash}` }
