@@ -80,7 +80,8 @@ export function createTransport() {
 				if (entity in macrofactorEntityMap) {
 					type MacroFactorEntity = keyof typeof macrofactorEntityMap;
 					const entityKey = entity as MacroFactorEntity;
-					const key = macrofactorEntityMap[entityKey].key as keyof typeof schema.macrofactorDaily;
+					const key = macrofactorEntityMap[entityKey]
+						.key as keyof typeof schema.macrofactorDaily;
 					selectColumns[entity] = schema.macrofactorDaily[key];
 				}
 			});

@@ -64,6 +64,11 @@ export const measurementsMapping = {
 		key: "muscle_mass",
 		unit: "kg",
 	},
+	74: {
+		name: "Muscle Mass Ratio (%)",
+		key: "muscle_mass_pct",
+		unit: "%",
+	},
 	// 77: {
 	//   name: "Hydration (kg)",
 	//   key: "hydration",

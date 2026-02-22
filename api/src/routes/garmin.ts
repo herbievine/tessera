@@ -6,52 +6,100 @@ import { jwt } from "hono/jwt";
 import { encrypt, decrypt } from "../utils/crypto";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import { fetcher } from "../utils/fetcher";
+
+dayjs.extend(utc);
 
 const app = new Hono();
 
-app.post("/connect",jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }), zValidator('json', z.object({
-	email: z.string().email(),
-	password: z.string().min(1),
-	startDate: z.string().optional(),
-})), async (c) => {
-	const token = c.get("jwtPayload");
-	const data = c.req.valid('json');
+app.post(
+	"/connect",
+	jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }),
+	zValidator(
+		"json",
+		z.object({
+			email: z.email(),
+			password: z.string().min(1),
+			startDate: z
+				.string()
+				.default(dayjs.utc().subtract(1, "month").toISOString()),
+		}),
+	),
+	async (c) => {
+		const token = c.get("jwtPayload");
+		const data = c.req.valid("json");
 
-	const [integration] = await db
-		.select()
-		.from(schema.integrations)
-		.where(
-			and(
-				eq(schema.integrations.vendor, "garmin"),
-				eq(schema.integrations.userId, token.sub),
-			),
-		)
-		.limit(1);
+		const [integration] = await db
+			.select()
+			.from(schema.integrations)
+			.where(
+				and(
+					eq(schema.integrations.vendor, "garmin"),
+					eq(schema.integrations.userId, token.sub),
+				),
+			)
+			.limit(1);
 
-	if (integration) {
-	return c.json({ error: "User already connected" }, 400);
-	}
+		if (integration) {
+			return c.json({ error: "User already connected" }, 400);
+    }
 
-	await db.insert(schema.integrations).values({
-		vendor: "garmin",
-		garminEmail: encrypt(data.email),
-		garminPassword: encrypt(data.password),
-		userId: token.sub,
-	});
+    const { data: garmin } = await fetcher(
+      'http://localhost:3011/user/profile',
+      z.object({ id: z.number() }),
+      {
+        headers: {
+          Authorization: `Bearer: ${Bun.env.GARMIN_ADMIN_KEY}`
+        }
+      }
+    )
 
-	// Trigger import with optional startDate
-	if (data.startDate) {
-		try {
-			await fetch(`http://localhost:3011/api/cron/garmin?startDate=${data.startDate}`, {
-				headers: { Authorization: `Bearer ${Bun.env.API_KEY}` }
-			});
-		} catch (e) {
-			console.error("Failed to trigger garmin import:", e);
+    console.log(garmin)
+
+    if (!garmin?.id) {
+      return c.json({ error: "Garmin user not found" }, 404);
+    }
+
+		await db.insert(schema.integrations).values({
+			vendor: "garmin",
+			garminEmail: encrypt(data.email),
+			garminPassword: encrypt(data.password),
+			userId: token.sub,
+		});
+
+		// Trigger import with optional startDate
+		if (data.startDate) {
+			try {
+				const [user] = await db
+					.select({ apiKeyHash: schema.users.apiKeyHash })
+					.from(schema.users)
+					.where(eq(schema.users.id, token.sub))
+					.limit(1);
+
+				console.log({ user });
+
+				if (user?.apiKeyHash) {
+					const y = await fetch(
+						`http://localhost:3010/api/cron/garmin?startDate=${data.startDate}`,
+						{
+              method: "POST",
+              headers: { Authorization: `Bearer ${user.apiKeyHash}` }
+						},
+					);
+
+					console.log(y.status);
+					console.log(await y.json());
+				}
+			} catch (e) {
+				console.error("Failed to trigger garmin import:", e);
+			}
 		}
-	}
 
-	return c.json({ message: "Garmin connected" }, 201);
-});
+		return c.json({ message: "Garmin connected" }, 201);
+	},
+);
 
 app.get(
 	"/status",

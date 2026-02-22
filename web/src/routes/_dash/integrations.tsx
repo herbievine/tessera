@@ -1,25 +1,15 @@
 import { useState } from "react";
 import { useIntegrations, useDeleteIntegration, useConnectGarmin } from "@/api/integrations.query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Link2, Check, X, Trash2 } from "lucide-react";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Link2, Check, X, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const Route = createFileRoute("/_dash/integrations")({
 	component: RouteComponent,
@@ -81,8 +71,18 @@ function GarminConnectSheet() {
 		},
 	});
 
+	const [startDate, setStartDate] = useState<Date | undefined>(() => {
+		const d = new Date();
+		d.setMonth(d.getMonth() - 1);
+		return d;
+	});
+
 	const handleConnect = () => {
-		connect({ email, password });
+		connect({ 
+			email, 
+			password,
+			startDate: startDate ? format(startDate, "yyyy-MM-dd") : undefined
+		});
 	};
 
 	return (
@@ -101,9 +101,8 @@ function GarminConnectSheet() {
 				</DialogHeader>
 				<div className="grid gap-4 py-4">
 					<div className="grid gap-2">
-						<Label htmlFor="email">Email</Label>
+						<Label>Email</Label>
 						<Input
-							id="email"
 							type="email"
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
@@ -111,13 +110,37 @@ function GarminConnectSheet() {
 						/>
 					</div>
 					<div className="grid gap-2">
-						<Label htmlFor="password">Password</Label>
+						<Label>Password</Label>
 						<Input
-							id="password"
 							type="password"
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 						/>
+					</div>
+					<div className="grid gap-2">
+						<Label>Import data from</Label>
+						<Popover>
+							<PopoverTrigger asChild>
+								<Button
+									variant="outline"
+									className="w-full justify-start text-left font-normal"
+								>
+									<CalendarIcon className="mr-2 h-4 w-4" />
+									{startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0" align="start">
+								<Calendar
+									mode="single"
+									selected={startDate}
+									onSelect={setStartDate}
+									initialFocus
+								/>
+							</PopoverContent>
+						</Popover>
+						<p className="text-xs text-muted-foreground">
+							Data from this date will be imported (default: last month)
+						</p>
 					</div>
 				</div>
 				<div className="flex justify-end">

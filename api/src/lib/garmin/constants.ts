@@ -54,6 +54,11 @@ export const garminTypes = {
 		key: "heart_rate_avg",
 		unit: "bpm",
 	},
+	heart_rate: {
+		name: "Heart Rate",
+		key: "heart_rate",
+		unit: "bpm",
+	},
 	hrv_weekly_avg: {
 		name: "HRV Weekly Average",
 		key: "hrv_weekly_avg",
@@ -83,6 +88,7 @@ export const garminKeys = [
 	"heart_rate_max",
 	"heart_rate_min",
 	"heart_rate_avg",
+	"heart_rate",
 	"hrv_weekly_avg",
 	"hrv_last_night_avg",
 	"hrv_status",

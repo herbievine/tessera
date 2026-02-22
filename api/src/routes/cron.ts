@@ -92,27 +92,74 @@ app.post("/withings", async (c) => {
 	let imported = 0;
 
 	for (const { date, measures } of measurementData.measuregrps) {
+		const obsDate = dayjs.unix(date).toDate();
+		
+		const baseObservations: Array<{
+			source: "withings";
+			type: string;
+			label: string;
+			unit: string | null;
+			value: number;
+			observedAt: Date;
+			userId: string;
+			integrationId: string;
+		}> = measures.map((measure) => ({
+			source: "withings" as const,
+			type: measurementsMapping[
+				measure.type as keyof typeof measurementsMapping
+			].key,
+			label:
+				measurementsMapping[
+					measure.type as keyof typeof measurementsMapping
+				].name,
+			unit: measurementsMapping[
+				measure.type as keyof typeof measurementsMapping
+			].unit,
+			value: +(measure.value * Math.pow(10, measure.unit)).toFixed(2),
+			observedAt: obsDate,
+			userId: user.id,
+			integrationId: integration.id,
+		}));
+
+		const weight = baseObservations.find((o: any) => o.type === "weight")?.value;
+		const muscleMassKg = baseObservations.find((o: any) => o.type === "muscle_mass")?.value;
+		const boneMassKg = baseObservations.find((o: any) => o.type === "bone_mass")?.value;
+
+		const derivedObservations: typeof baseObservations = [];
+		
+		if (weight && muscleMassKg) {
+			const muscleMassPct = (muscleMassKg / weight) * 100;
+			derivedObservations.push({
+				source: "withings",
+				type: "muscle_mass_pct",
+				label: "Muscle Mass (%)",
+				unit: "%",
+				value: +muscleMassPct.toFixed(1),
+				observedAt: obsDate,
+				userId: user.id,
+				integrationId: integration.id,
+			});
+		}
+
+		if (weight && boneMassKg) {
+			const boneMassPct = (boneMassKg / weight) * 100;
+			derivedObservations.push({
+				source: "withings",
+				type: "bone_mass_pct",
+				label: "Bone Mass (%)",
+				unit: "%",
+				value: +boneMassPct.toFixed(1),
+				observedAt: obsDate,
+				userId: user.id,
+				integrationId: integration.id,
+			});
+		}
+
+		const allObservations = [...baseObservations, ...derivedObservations] as any;
+
 		const { length } = await db
 			.insert(schema.observations)
-			.values(
-				measures.map((measure) => ({
-					source: "withings" as const,
-					type: measurementsMapping[
-						measure.type as keyof typeof measurementsMapping
-					].key,
-					label:
-						measurementsMapping[
-							measure.type as keyof typeof measurementsMapping
-						].name,
-					unit: measurementsMapping[
-						measure.type as keyof typeof measurementsMapping
-					].unit,
-					value: +(measure.value * Math.pow(10, measure.unit)).toFixed(2),
-					observedAt: dayjs.unix(date).toDate(),
-					userId: user.id,
-					integrationId: integration.id,
-				})),
-			)
+			.values(allObservations)
 			.onConflictDoUpdate({
 				target: [
 					schema.observations.userId,
@@ -149,10 +196,6 @@ app.post("/garmin", async (c) => {
 	const [user] = await db
 		.select({
 			id: schema.users.id,
-			email: schema.users.email,
-			name: schema.users.name,
-			apiKeyHash: schema.users.apiKeyHash,
-			createdAt: schema.users.createdAt,
 		})
 		.from(schema.users)
 		.where(eq(schema.users.apiKeyHash, token))
@@ -189,6 +232,8 @@ app.post("/garmin", async (c) => {
 
 	const adminKey = process.env.GARMIN_ADMIN_KEY;
 
+	console.log({ email, password, startDate, adminKey, integration });
+
 	// Update credentials on garmin service
 	try {
 		const updateRes = await fetch(`${garminApiUrl}/update-credentials`, {
@@ -220,7 +265,7 @@ app.post("/garmin", async (c) => {
 	const today = dayjs();
 	const start = startDate ? dayjs(startDate) : today.subtract(1, "month");
 	const dates: string[] = [];
-	
+
 	let current = start;
 	while (current.isBefore(today) || current.isSame(today, "day")) {
 		dates.push(current.format("YYYY-MM-DD"));
@@ -379,6 +424,25 @@ app.post("/garmin", async (c) => {
 						integrationId: integration.id,
 					});
 				}
+
+				// Store individual HR readings as separate observations
+				const timeseries = hr.timeseries as Array<{ time: string; bpm: number }> | undefined;
+				if (timeseries) {
+					for (const reading of timeseries) {
+            if (reading.bpm !== null) {
+              observations.push({
+  							source: "garmin",
+  							type: "heart_rate",
+  							label: "Heart Rate",
+  							unit: "bpm",
+  							value: reading.bpm,
+  							observedAt: dayjs(reading.time).toDate(),
+  							userId: user.id,
+  							integrationId: integration.id,
+  						});
+						}
+					}
+				}
 			}
 		} catch (e) {
 			console.error("Failed to fetch HR data:", e);
@@ -423,7 +487,10 @@ app.post("/garmin", async (c) => {
 						type: "hrv_status",
 						label: "HRV Status",
 						unit: "status",
-						value: typeof hrv.status === "string" ? parseInt(hrv.status) || 0 : (hrv.status as number),
+						value:
+							typeof hrv.status === "string"
+								? parseInt(hrv.status) || 0
+								: (hrv.status as number),
 						observedAt: dayjs(date).toDate(),
 						userId: user.id,
 						integrationId: integration.id,
@@ -433,116 +500,6 @@ app.post("/garmin", async (c) => {
 		} catch (e) {
 			console.error("Failed to fetch HRV data:", e);
 		}
-	}
-					value: hr.resting_hr as number,
-					observedAt: dayjs(hr.date as string).toDate(),
-					userId: user.id,
-					integrationId: integration.id,
-				});
-			}
-			if (hr.max_hr != null) {
-				observations.push({
-					source: "garmin",
-					type: "heart_rate_max",
-					label: "Max Heart Rate",
-					unit: "bpm",
-					value: hr.max_hr as number,
-					observedAt: dayjs(hr.date as string).toDate(),
-					userId: user.id,
-					integrationId: integration.id,
-				});
-			}
-			if (hr.min_hr != null) {
-				observations.push({
-					source: "garmin",
-					type: "heart_rate_min",
-					label: "Min Heart Rate",
-					unit: "bpm",
-					value: hr.min_hr as number,
-					observedAt: dayjs(hr.date as string).toDate(),
-					userId: user.id,
-					integrationId: integration.id,
-				});
-			}
-			if (hr.avg_hr != null) {
-				observations.push({
-					source: "garmin",
-					type: "heart_rate_avg",
-					label: "Average Heart Rate",
-					unit: "bpm",
-					value: hr.avg_hr as number,
-					observedAt: dayjs(hr.date as string).toDate(),
-					userId: user.id,
-					integrationId: integration.id,
-				});
-			}
-		}
-	} catch (e) {
-		console.error("Failed to fetch HR data:", e);
-	}
-
-	// Fetch HRV data (latest)
-	try {
-		const hrvRes = await fetch(
-			`${garminApiUrl}/hrv?start=${today}&end=${today}`,
-			{ headers },
-		);
-		if (hrvRes.ok) {
-			const hrvJson = (await hrvRes.json()) as Record<string, unknown>;
-			const hrv = (
-				hrvJson.data as Array<{
-					data?: { hrvSummary?: Record<string, unknown> };
-				}>
-			)?.[0]?.data;
-
-			if (hrv?.hrvSummary) {
-				const summary = hrv.hrvSummary;
-
-				if (summary.weeklyAvg != null) {
-					observations.push({
-						source: "garmin",
-						type: "hrv_weekly_avg",
-						label: "HRV Weekly Average",
-						unit: "ms",
-						value: summary.weeklyAvg as number,
-						observedAt: dayjs(summary.calendarDate as string).toDate(),
-						userId: user.id,
-						integrationId: integration.id,
-					});
-				}
-				if (summary.lastNightAvg != null) {
-					observations.push({
-						source: "garmin",
-						type: "hrv_last_night_avg",
-						label: "HRV Last Night Average",
-						unit: "ms",
-						value: summary.lastNightAvg as number,
-						observedAt: dayjs(summary.calendarDate as string).toDate(),
-						userId: user.id,
-						integrationId: integration.id,
-					});
-				}
-				if (summary.status) {
-					const statusMap: Record<string, number> = {
-						BALANCED: 0,
-						LOW: 1,
-						HIGH: 2,
-					};
-					observations.push({
-						source: "garmin",
-						type: "hrv_status",
-						label: "HRV Status",
-						unit: "status",
-						value: statusMap[summary.status as string] ?? -1,
-						observedAt: dayjs(summary.calendarDate as string).toDate(),
-						userId: user.id,
-						integrationId: integration.id,
-					});
-				}
-			}
-		}
-	} catch (e) {
-		console.error("Failed to fetch HRV data:", e);
 	}
 
 	if (observations.length === 0) {

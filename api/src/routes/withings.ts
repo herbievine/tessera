@@ -73,38 +73,42 @@ app.get("/callback", async (c) => {
 	);
 });
 
-app.get("/connect",jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }), async (c) => {
-	const token = c.get("jwtPayload");
+app.get(
+	"/connect",
+	jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }),
+	async (c) => {
+		const token = c.get("jwtPayload");
 
-	const [integration] = await db
-		.select()
-		.from(schema.integrations)
-		.where(
-			and(
-				eq(schema.integrations.vendor, "withings"),
-				eq(schema.integrations.userId, token.sub),
-			),
-		)
-		.limit(1);
+		const [integration] = await db
+			.select()
+			.from(schema.integrations)
+			.where(
+				and(
+					eq(schema.integrations.vendor, "withings"),
+					eq(schema.integrations.userId, token.sub),
+				),
+			)
+			.limit(1);
 
-	if (integration) {
-		return c.json({ error: "User already connected" }, 400);
-	}
+		if (integration) {
+			return c.json({ error: "User already connected" }, 400);
+		}
 
-	const searchParams = new URLSearchParams();
+		const searchParams = new URLSearchParams();
 
-	searchParams.append("response_type", "code");
-	searchParams.append("client_id", Bun.env.WITHINGS_CLIENT_ID!);
-	searchParams.append("scope", "user.metrics");
-	searchParams.append(
-		"redirect_uri",
-		Bun.env.BASE_URL + "/api/withings/callback",
-	);
-	searchParams.append("state", `${token.sub}:${Date.now()}`);
+		searchParams.append("response_type", "code");
+		searchParams.append("client_id", Bun.env.WITHINGS_CLIENT_ID!);
+		searchParams.append("scope", "user.metrics");
+		searchParams.append(
+			"redirect_uri",
+			Bun.env.BASE_URL + "/api/withings/callback",
+		);
+		searchParams.append("state", `${token.sub}:${Date.now()}`);
 
-	return c.json({
-		url: `https://account.withings.com/oauth2_user/authorize2?${searchParams.toString()}`,
-	});
-});
+		return c.json({
+			url: `https://account.withings.com/oauth2_user/authorize2?${searchParams.toString()}`,
+		});
+	},
+);
 
 export default app;

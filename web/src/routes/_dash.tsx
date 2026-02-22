@@ -6,8 +6,11 @@ import {
 	Outlet,
 	redirect,
 	Link,
+	useLocation,
 } from "@tanstack/react-router";
-import { Home, LogOut, ChevronUp, User, BarChart3, Link2 } from "lucide-react";
+import { Home, LogOut, ChevronUp, User, BarChart3, Link2, Calendar as CalendarIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import {
 	Sidebar,
 	SidebarContent,
@@ -31,6 +34,9 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/_dash")({
@@ -189,13 +195,85 @@ function RouteComponent() {
 			</Sidebar>
 
 			<SidebarInset>
-				<header className="flex h-14 shrink-0 items-center gap-2 border-b px-6">
-					<h1 className="text-base font-medium">Home</h1>
-				</header>
+				<RouteHeader />
 				<div className="flex flex-1 flex-col gap-4 p-6">
 					<Outlet />
 				</div>
 			</SidebarInset>
 		</SidebarProvider>
+	);
+}
+
+function RouteHeader() {
+	const location = useLocation();
+	const search = location.search as { startDate?: string; endDate?: string } | undefined;
+	const [open, setOpen] = useState(false);
+	
+	const getDefaultRange = () => {
+		const to = search?.endDate ? new Date(search.endDate) : new Date();
+		const from = search?.startDate ? new Date(search.startDate) : (() => {
+			const d = new Date();
+			d.setDate(d.getDate() - 7);
+			return d;
+		})();
+		return { from, to };
+	};
+	
+	const [tempRange, setTempRange] = useState<{ from: Date; to: Date }>(getDefaultRange);
+
+	const pageName = useMemo(() => {
+		const path = location.pathname;
+		if (path === "/" || path === "/home") return "Home";
+		if (path === "/analytics") return "Analytics";
+		if (path === "/integrations") return "Integrations";
+		if (path === "/profile") return "Profile";
+		const lastSegment = path.split("/").pop();
+		return lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : "Home";
+	}, [location.pathname]);
+
+	const currentRange = search?.startDate || search?.endDate ? getDefaultRange() : tempRange;
+
+	const handleApply = () => {
+		const params = new URLSearchParams(window.location.search);
+		params.set("startDate", format(tempRange.from, "yyyy-MM-dd"));
+		params.set("endDate", format(tempRange.to, "yyyy-MM-dd"));
+		window.history.pushState({}, "", `?${params.toString()}`);
+		setOpen(false);
+		window.location.reload();
+	};
+
+	return (
+		<header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-6">
+			<h1 className="text-base font-medium">{pageName}</h1>
+			<div className="flex items-center gap-2">
+				<Popover open={open} onOpenChange={setOpen}>
+					<PopoverTrigger asChild>
+						<Button
+							variant="outline"
+							className="justify-start text-left font-normal"
+						>
+							<CalendarIcon className="mr-2 h-4 w-4" />
+							{format(currentRange.from, "MMM d")} - {format(currentRange.to, "MMM d, yyyy")}
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-auto p-0" align="end">
+						<Calendar
+							mode="range"
+							defaultMonth={tempRange.from}
+							selected={{ from: tempRange.from, to: tempRange.to }}
+							onSelect={(range) => {
+								if (range?.from) setTempRange(prev => ({ ...prev, from: range.from! }));
+								if (range?.to) setTempRange(prev => ({ ...prev, to: range.to! }));
+							}}
+							numberOfMonths={2}
+						/>
+						<div className="flex justify-end gap-2 p-2 border-t">
+							<Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+							<Button size="sm" onClick={handleApply}>Apply</Button>
+						</div>
+					</PopoverContent>
+				</Popover>
+			</div>
+		</header>
 	);
 }

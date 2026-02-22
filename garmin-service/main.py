@@ -21,7 +21,7 @@ import json
 import logging
 import os
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
@@ -46,7 +46,7 @@ class Config:
     port: int = int(os.getenv("PORT", "3011"))
     admin_key: str | None = os.getenv("GARMIN_ADMIN_KEY")
 
-    today: date = date.today()
+    today: date = datetime.now(timezone.utc).date()
     week_start: date = today - timedelta(days=7)
 
 
@@ -114,7 +114,7 @@ def format_sleep_data(raw: dict) -> dict:
     levels = dto.get("sleepLevels", {})
 
     return {
-        "date": dto.get("sleepStartTimeGMT", "")[:10],
+        "date": dto.get("sleepStartTimeGMT", ""),
         "sleep_score": dto.get("sleepScore"),
         "quality": dto.get("sleepQuality"),
         "total_seconds": dto.get("sleepTimeSeconds"),
@@ -130,6 +130,7 @@ def format_sleep_data(raw: dict) -> dict:
         "restless_seconds": dto.get("restlessSeconds"),
         "restless_percentage": dto.get("restlessPeriodsPercentage"),
         "awake_count": dto.get("awakeCount"),
+        "dasd": dto,
         "timeseries": levels.get("deep", []) + levels.get("light", []) + levels.get("rem", []) + levels.get("awake", [])
     }
 
@@ -142,8 +143,7 @@ def format_heart_rate_data(raw: dict) -> dict:
     for hr in heart_rates:
         timestamp_ms = hr[0]
         bpm = hr[1]
-        import datetime
-        dt = datetime.datetime.fromtimestamp(timestamp_ms / 1000)
+        dt = datetime.fromtimestamp(timestamp_ms / 1000, timezone.utc)
         timeseries.append({
             "time": dt.isoformat(),
             "bpm": bpm,

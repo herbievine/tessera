@@ -185,34 +185,72 @@ function TrendChart({
 }
 
 function RouteComponent() {
-	const weight = useTrends("weight");
-	const fatRatio = useTrends("fat_ratio_pct");
-	const muscleMass = useTrends("muscle_mass");
-	const calories = useTrends("calories");
-	const protein = useTrends("protein");
-	const fat = useTrends("fat");
-	const carbs = useTrends("carbs");
-	const vitaminA = useTrends("vitaminA");
-	const vitaminC = useTrends("vitaminC");
-	const vitaminD = useTrends("vitaminD");
-	const vitaminE = useTrends("vitaminE");
-	const b1 = useTrends("b1Thiamine");
-	const b2 = useTrends("b2Riboflavin");
-	const b3 = useTrends("b3Niacin");
-	const b6 = useTrends("b6Pyridoxine");
-	const calcium = useTrends("calcium");
-	const iron = useTrends("iron");
-	const magnesium = useTrends("magnesium");
-	const zinc = useTrends("zinc");
-	const potassium = useTrends("potassium");
-	const sodium = useTrends("sodium");
-	const caffeine = useTrends("caffeine");
-	const alcohol = useTrends("alcohol");
-	const cholesterol = useTrends("cholesterol");
-	const fiber = useTrends("fiber");
+	const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+	const startDate = params.get("startDate") || undefined;
+	const endDate = params.get("endDate") || undefined;
+
+	const weight = useTrends("weight", startDate, endDate);
+	const fatRatio = useTrends("fat_ratio_pct", startDate, endDate);
+	const muscleMass = useTrends("muscle_mass", startDate, endDate);
+	const calories = useTrends("calories", startDate, endDate);
+	const protein = useTrends("protein", startDate, endDate);
+	const fat = useTrends("fat", startDate, endDate);
+	const carbs = useTrends("carbs", startDate, endDate);
+	const vitaminA = useTrends("vitaminA", startDate, endDate);
+	const vitaminC = useTrends("vitaminC", startDate, endDate);
+	const vitaminD = useTrends("vitaminD", startDate, endDate);
+	const vitaminE = useTrends("vitaminE", startDate, endDate);
+	const b1 = useTrends("b1Thiamine", startDate, endDate);
+	const b2 = useTrends("b2Riboflavin", startDate, endDate);
+	const b3 = useTrends("b3Niacin", startDate, endDate);
+	const b6 = useTrends("b6Pyridoxine", startDate, endDate);
+	const calcium = useTrends("calcium", startDate, endDate);
+	const iron = useTrends("iron", startDate, endDate);
+	const magnesium = useTrends("magnesium", startDate, endDate);
+	const zinc = useTrends("zinc", startDate, endDate);
+	const potassium = useTrends("potassium", startDate, endDate);
+	const sodium = useTrends("sodium", startDate, endDate);
+	const caffeine = useTrends("caffeine", startDate, endDate);
+	const alcohol = useTrends("alcohol", startDate, endDate);
+	const cholesterol = useTrends("cholesterol", startDate, endDate);
+	const fiber = useTrends("fiber", startDate, endDate);
+
+	const restingHR = useTrends("resting_heart_rate", startDate, endDate);
+	const heartRate = useTrends("heart_rate", startDate, endDate);
+
+	const fatKg = useTrends("fat_mass_weight", startDate, endDate);
+	const boneMass = useTrends("bone_mass", startDate, endDate);
+	const boneMassPct = useTrends("bone_mass_pct", startDate, endDate);
+	const fatFreeMass = useTrends("fat_free_mass", startDate, endDate);
+	const visceralFat = useTrends("visceral_fat", startDate, endDate);
+	const muscleMassPct = useTrends("muscle_mass_pct", startDate, endDate);
 
 	return (
 		<div className="space-y-8">
+			<div>
+				<h2 className="text-lg font-semibold mb-4">Heart Rate</h2>
+				<div className="grid gap-6 md:grid-cols-2">
+					<TrendChart
+						title="Resting Heart Rate"
+						description="RHR over time"
+						data={mergeChartData([restingHR.trends], ["resting_heart_rate"])}
+						entities={["resting_heart_rate"]}
+						labels={["RHR"]}
+						units={["bpm"]}
+						isLoading={restingHR.isLoading}
+					/>
+					<TrendChart
+						title="Heart Rate"
+						description="Intraday heart rate"
+						data={mergeChartData([heartRate.trends], ["heart_rate"])}
+						entities={["heart_rate"]}
+						labels={["HR"]}
+						units={["bpm"]}
+						isLoading={heartRate.isLoading}
+					/>
+				</div>
+			</div>
+
 			<div>
 				<h2 className="text-lg font-semibold mb-4">Body Composition</h2>
 				<div className="grid gap-6 md:grid-cols-2">
@@ -226,16 +264,58 @@ function RouteComponent() {
 						isLoading={weight.isLoading}
 					/>
 					<TrendChart
-						title="Body Composition"
-						description="Fat ratio and muscle mass"
+						title="Fat & Muscle Mass (%)"
+						description="Fat percentage and muscle mass percentage"
 						data={mergeChartData(
-							[fatRatio.trends, muscleMass.trends],
-							["fat_ratio_pct", "muscle_mass"],
+							[fatRatio.trends, muscleMassPct.trends],
+							["fat_ratio_pct", "muscle_mass_pct"],
 						)}
-						entities={["fat_ratio_pct", "muscle_mass"]}
-						labels={["Fat", "Muscle Mass"]}
-						units={["%", "kg"]}
-						isLoading={fatRatio.isLoading || muscleMass.isLoading}
+						entities={["fat_ratio_pct", "muscle_mass_pct"]}
+						labels={["Fat %", "Muscle %"]}
+						units={["%", "%"]}
+						isLoading={fatRatio.isLoading || muscleMassPct.isLoading}
+					/>
+					<TrendChart
+						title="Fat & Muscle Mass (kg)"
+						description="Fat mass and muscle mass in kg"
+						data={mergeChartData(
+							[fatKg.trends, muscleMass.trends],
+							["fat_mass_weight", "muscle_mass"],
+						)}
+						entities={["fat_mass_weight", "muscle_mass"]}
+						labels={["Fat (kg)", "Muscle (kg)"]}
+						units={["kg", "kg"]}
+						isLoading={fatKg.isLoading || muscleMass.isLoading}
+					/>
+					<TrendChart
+						title="Bone Mass"
+						description="Bone mass in kg and percentage"
+						data={mergeChartData(
+							[boneMass.trends, boneMassPct.trends],
+							["bone_mass", "bone_mass_pct"],
+						)}
+						entities={["bone_mass", "bone_mass_pct"]}
+						labels={["Bone (kg)", "Bone (%)"]}
+						units={["kg", "%"]}
+						isLoading={boneMass.isLoading || boneMassPct.isLoading}
+					/>
+					<TrendChart
+						title="Lean Mass"
+						description="Fat-free mass in kg"
+						data={mergeChartData([fatFreeMass.trends], ["fat_free_mass"])}
+						entities={["fat_free_mass"]}
+						labels={["Lean Mass"]}
+						units={["kg"]}
+						isLoading={fatFreeMass.isLoading}
+					/>
+					<TrendChart
+						title="Visceral Fat"
+						description="Visceral fat index"
+						data={mergeChartData([visceralFat.trends], ["visceral_fat"])}
+						entities={["visceral_fat"]}
+						labels={["Visceral Fat"]}
+						units={[""]}
+						isLoading={visceralFat.isLoading}
 					/>
 				</div>
 			</div>

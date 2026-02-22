@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db/index.ts";
 import * as schema from "../db/schema.ts";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 
 // export const entities = [
 //   'weight',
@@ -355,6 +355,10 @@ export const garminEntityMap = {
 		key: "heart_rate_avg",
 		unit: "bpm",
 	},
+	heart_rate: {
+		key: "heart_rate",
+		unit: "bpm",
+	},
 	hrv_weekly_avg: {
 		key: "hrv_weekly_avg",
 		unit: "ms",
@@ -406,8 +410,25 @@ export const entities = Object.keys(entityMap) as (keyof typeof entityMap)[];
 
 const app = new Hono().get("/:entity", async (c) => {
 	const entity = c.req.param("entity") as string;
+	const startDate = c.req.query("startDate");
+	const endDate = c.req.query("endDate");
+
+	const buildDateFilter = () => {
+		const conditions = [];
+		if (startDate) {
+			conditions.push(gte(schema.observations.observedAt, new Date(startDate)));
+		}
+		if (endDate) {
+			conditions.push(lte(schema.observations.observedAt, new Date(endDate + "T23:59:59.999Z")));
+		}
+		return conditions.length > 0 ? and(...conditions) : undefined;
+	};
 
 	if (entity in garminEntityMap) {
+		const dateFilter = buildDateFilter();
+		const conditions: any[] = [eq(schema.observations.type, entity as any)];
+		if (dateFilter) conditions.push(dateFilter);
+		
 		const data = await db
 			.select({
 				date: schema.observations.observedAt,
@@ -416,8 +437,7 @@ const app = new Hono().get("/:entity", async (c) => {
 				value: schema.observations.value,
 			})
 			.from(schema.observations)
-			// @ts-ignore
-			.where(eq(schema.observations.type, entity));
+			.where(and(...conditions));
 
 		return c.json(
 			data.map((item: any) => ({
@@ -434,12 +454,18 @@ const app = new Hono().get("/:entity", async (c) => {
 		const entityKey = entity as MacroFactorEntity;
 		const key = macrofactorEntityMap[entityKey].key;
 		const col = schema.macrofactorDaily[key as typeof key];
+		
+		const mfDateFilter: any[] = [];
+		if (startDate) mfDateFilter.push(gte(schema.macrofactorDaily.date, new Date(startDate)));
+		if (endDate) mfDateFilter.push(lte(schema.macrofactorDaily.date, new Date(endDate + "T23:59:59.999Z")));
+		
 		const data = await db
 			.select({
 				date: schema.macrofactorDaily.date,
 				value: col,
 			})
-			.from(schema.macrofactorDaily);
+			.from(schema.macrofactorDaily)
+			.where(mfDateFilter.length > 0 ? and(...mfDateFilter) : undefined);
 
 		return c.json(
 			data.map((item: any) => ({

@@ -60,13 +60,13 @@ export function useDeleteIntegration(
 }
 
 export function useConnectGarmin(
-	options: UseMutationOptions<void, Error, { email: string; password: string }> = {},
+	options: UseMutationOptions<void, Error, { email: string; password: string; startDate?: string }> = {},
 ) {
 	return useMutation({
 		mutationKey: ["connectGarmin"],
-		mutationFn: async ({ email, password }) => {
+		mutationFn: async ({ email, password, startDate }) => {
 			const res = await (client.api.garmin as any).connect.$post({
-				json: { email, password },
+				json: { email, password, startDate },
 			});
 
 			if (!res.ok) {
