@@ -34,6 +34,8 @@ services:
       - WITHINGS_CLIENT_SECRET=${WITHINGS_CLIENT_SECRET}
       - GARMIN_API_URL=${GARMIN_API_URL}
       - GARMIN_ADMIN_KEY=${GARMIN_ADMIN_KEY}
+    labels:
+      - "traefik.docker.network=c0wcwk0g840scggo0o4ckgow"
     volumes:
       - ./api/data:/app/data
     restart: unless-stopped
