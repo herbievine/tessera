@@ -6,7 +6,7 @@ services:
     ports:
       - "3011:3011"
     env_file:
-      - ./garmin-service/.env
+      - .env
     volumes:
       - ./data/garmin-tokens:/data
     restart: unless-stopped
@@ -23,10 +23,17 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3010:3010"
-    env_file:
-      - ./api/.env
     environment:
-      - DB_FILE_NAME=./data/sqlite.db
+      - API_URL=${API_URL}
+      - FRONT_END_URL=${FRONT_END_URL}
+      - DB_FILE_NAME=${DB_FILE_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - API_KEY=${API_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - WITHINGS_CLIENT_ID=${WITHINGS_CLIENT_ID}
+      - WITHINGS_CLIENT_SECRET=${WITHINGS_CLIENT_SECRET}
+      - GARMIN_API_URL=${GARMIN_API_URL}
+      - GARMIN_ADMIN_KEY=${GARMIN_ADMIN_KEY}
     volumes:
       - ./api/data:/app/data
     restart: unless-stopped
@@ -39,14 +46,12 @@ services:
 
   web:
     build:
-      context: ./web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web/Dockerfile
     ports:
       - "3000:3000"
-    # env_file:
-    #   - ./web/.env
     environment:
-      - VITE_API_URL=${BASE_URL:-http://localhost:3010}
+      - VITE_API_URL=${API_URL:-http://localhost:3010}
     restart: unless-stopped
     depends_on:
       - api
