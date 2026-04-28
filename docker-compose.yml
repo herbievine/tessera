@@ -41,9 +41,6 @@ services:
     volumes:
       - ./api/data:/app/data
     restart: unless-stopped
-    networks:
-      - default
-      - coolify
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3010/api/auth/health"]
       interval: 30s
@@ -63,6 +60,4 @@ services:
     depends_on:
       - api
 
-networks:
-  coolify:
-    external: true
+
