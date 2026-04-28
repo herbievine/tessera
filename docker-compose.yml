@@ -35,12 +35,15 @@ services:
       - GARMIN_API_URL=${GARMIN_API_URL}
       - GARMIN_ADMIN_KEY=${GARMIN_ADMIN_KEY}
     labels:
+      - "traefik.docker.network=coolify"
       - "traefik.http.routers.https-0-c0wcwk0g840scggo0o4ckgow-api.service=tessera-api-svc"
       - "traefik.http.routers.http-0-c0wcwk0g840scggo0o4ckgow-api.service=tessera-api-svc"
       - "traefik.http.services.tessera-api-svc.loadbalancer.server.port=3010"
     volumes:
       - ./api/data:/app/data
     restart: unless-stopped
+    networks:
+      - coolify
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3010/api/auth/health"]
       interval: 30s
@@ -59,5 +62,9 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+
+networks:
+  coolify:
+    external: true
 
 
