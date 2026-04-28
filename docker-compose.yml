@@ -34,6 +34,16 @@ services:
       - WITHINGS_CLIENT_SECRET=${WITHINGS_CLIENT_SECRET}
       - GARMIN_API_URL=${GARMIN_API_URL}
       - GARMIN_ADMIN_KEY=${GARMIN_ADMIN_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tessera-api-http.rule=Host(`api.tessera.herbievine.com`)"
+      - "traefik.http.routers.tessera-api-http.entryPoints=http"
+      - "traefik.http.routers.tessera-api-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.tessera-api-https.rule=Host(`api.tessera.herbievine.com`)"
+      - "traefik.http.routers.tessera-api-https.entryPoints=https"
+      - "traefik.http.routers.tessera-api-https.tls=true"
+      - "traefik.http.routers.tessera-api-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.tessera-api.loadbalancer.server.port=3010"
     volumes:
       - ./api/data:/app/data
     restart: unless-stopped
@@ -49,7 +59,7 @@ services:
       context: .
       dockerfile: web/Dockerfile
     ports:
-      - "3000:3000"
+      - "3000:80"
     environment:
       - VITE_API_URL=${API_URL:-http://localhost:3010}
     restart: unless-stopped

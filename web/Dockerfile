@@ -22,7 +22,7 @@ FROM nginx:alpine AS runner
 
 # SPA config: listen on 3000, fall back to index.html for client-side routing
 RUN printf 'server {\n\
-    listen 3000;\n\
+    listen 80;\n\
     root /usr/share/nginx/html;\n\
     index index.html;\n\
     location / {\n\
@@ -32,6 +32,6 @@ RUN printf 'server {\n\
 
 COPY --from=builder /app/web/dist /usr/share/nginx/html
 
-EXPOSE 3000
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
