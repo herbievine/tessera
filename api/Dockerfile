@@ -2,20 +2,18 @@ FROM oven/bun:latest
 
 WORKDIR /app
 
-# Copy package files
+# Copy each workspace's package.json so bun can resolve the graph before copying full source
 COPY package.json bun.lock ./
+COPY api/package.json ./api/
+COPY web/package.json ./web/
 
-# Install dependencies
 RUN bun install --frozen-lockfile
 
-# Copy source code
-COPY . .
+COPY api/ ./api/
 
-# Create data directory for SQLite
-RUN mkdir -p data
+RUN mkdir -p api/data
 
-# Expose port
 EXPOSE 3010
 
-# Run the application
+WORKDIR /app/api
 CMD ["bun", "run", "src/index.ts"]
