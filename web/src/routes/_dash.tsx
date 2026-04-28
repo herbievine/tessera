@@ -8,7 +8,16 @@ import {
 	Link,
 	useLocation,
 } from "@tanstack/react-router";
-import { Home, LogOut, ChevronUp, User, BarChart3, Link2, Calendar as CalendarIcon } from "lucide-react";
+import {
+	Home,
+	LogOut,
+	ChevronUp,
+	User,
+	BarChart3,
+	Link2,
+	Calendar as CalendarIcon,
+	RefreshCw,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
@@ -36,7 +45,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/_dash")({
@@ -206,20 +219,51 @@ function RouteComponent() {
 
 function RouteHeader() {
 	const location = useLocation();
-	const search = location.search as { startDate?: string; endDate?: string } | undefined;
+	const search = location.search as
+		| { startDate?: string; endDate?: string }
+		| undefined;
 	const [open, setOpen] = useState(false);
-	
+	const [syncing, setSyncing] = useState(false);
+
 	const getDefaultRange = () => {
 		const to = search?.endDate ? new Date(search.endDate) : new Date();
-		const from = search?.startDate ? new Date(search.startDate) : (() => {
-			const d = new Date();
-			d.setDate(d.getDate() - 7);
-			return d;
-		})();
+		const from = search?.startDate
+			? new Date(search.startDate)
+			: (() => {
+					const d = new Date();
+					d.setDate(d.getDate() - 7);
+					return d;
+				})();
 		return { from, to };
 	};
-	
-	const [tempRange, setTempRange] = useState<{ from: Date; to: Date }>(getDefaultRange);
+
+	const [tempRange, setTempRange] = useState<{ from: Date; to: Date }>(
+		getDefaultRange,
+	);
+
+	const handleSync = async () => {
+		setSyncing(true);
+		try {
+			const token = localStorage.getItem("access_token");
+			const res = await fetch(`${import.meta.env.VITE_API_URL}/api/cron/sync`, {
+				method: "POST",
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			const data = await res.json();
+			if (res.ok) {
+				alert(
+					`Sync complete!\nWithings: ${data.results?.[0]?.imported || 0} records\nGarmin: ${data.results?.[1]?.imported || 0} records`,
+				);
+				window.location.reload();
+			} else {
+				alert(data.error || "Sync failed");
+			}
+		} catch (e) {
+			alert("Sync failed");
+		} finally {
+			setSyncing(false);
+		}
+	};
 
 	const pageName = useMemo(() => {
 		const path = location.pathname;
@@ -228,10 +272,13 @@ function RouteHeader() {
 		if (path === "/integrations") return "Integrations";
 		if (path === "/profile") return "Profile";
 		const lastSegment = path.split("/").pop();
-		return lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : "Home";
+		return lastSegment
+			? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1)
+			: "Home";
 	}, [location.pathname]);
 
-	const currentRange = search?.startDate || search?.endDate ? getDefaultRange() : tempRange;
+	const currentRange =
+		search?.startDate || search?.endDate ? getDefaultRange() : tempRange;
 
 	const handleApply = () => {
 		const params = new URLSearchParams(window.location.search);
@@ -253,7 +300,8 @@ function RouteHeader() {
 							className="justify-start text-left font-normal"
 						>
 							<CalendarIcon className="mr-2 h-4 w-4" />
-							{format(currentRange.from, "MMM d")} - {format(currentRange.to, "MMM d, yyyy")}
+							{format(currentRange.from, "MMM d")} -{" "}
+							{format(currentRange.to, "MMM d, yyyy")}
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent className="w-auto p-0" align="end">
@@ -262,17 +310,38 @@ function RouteHeader() {
 							defaultMonth={tempRange.from}
 							selected={{ from: tempRange.from, to: tempRange.to }}
 							onSelect={(range) => {
-								if (range?.from) setTempRange(prev => ({ ...prev, from: range.from! }));
-								if (range?.to) setTempRange(prev => ({ ...prev, to: range.to! }));
+								if (range?.from)
+									setTempRange((prev) => ({ ...prev, from: range.from! }));
+								if (range?.to)
+									setTempRange((prev) => ({ ...prev, to: range.to! }));
 							}}
 							numberOfMonths={2}
 						/>
 						<div className="flex justify-end gap-2 p-2 border-t">
-							<Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-							<Button size="sm" onClick={handleApply}>Apply</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setOpen(false)}
+							>
+								Cancel
+							</Button>
+							<Button size="sm" onClick={handleApply}>
+								Apply
+							</Button>
 						</div>
 					</PopoverContent>
 				</Popover>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={handleSync}
+					disabled={syncing}
+				>
+					<RefreshCw
+						className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+					/>
+					{syncing ? "Syncing..." : "Sync"}
+				</Button>
 			</div>
 		</header>
 	);
