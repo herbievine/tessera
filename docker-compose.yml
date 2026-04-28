@@ -34,6 +34,10 @@ services:
       - WITHINGS_CLIENT_SECRET=${WITHINGS_CLIENT_SECRET}
       - GARMIN_API_URL=${GARMIN_API_URL}
       - GARMIN_ADMIN_KEY=${GARMIN_ADMIN_KEY}
+    labels:
+      - "traefik.http.routers.https-0-c0wcwk0g840scggo0o4ckgow-api.service=tessera-api-svc"
+      - "traefik.http.routers.http-0-c0wcwk0g840scggo0o4ckgow-api.service=tessera-api-svc"
+      - "traefik.http.services.tessera-api-svc.loadbalancer.server.port=3010"
     volumes:
       - ./api/data:/app/data
     restart: unless-stopped
