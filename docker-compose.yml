@@ -38,7 +38,7 @@ services:
       - ./api/data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:3010/api -o /dev/null -w '%{http_code}' | grep -q '401'"]
+      test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3010/api').then(r => process.exit(r.status === 401 ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 3
