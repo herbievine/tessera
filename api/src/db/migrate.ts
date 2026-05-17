@@ -2,6 +2,7 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { Database } from "bun:sqlite";
 import * as schema from "./schema";
+import { generateApiKey } from "../utils/id";
 
 if (!Bun.env.DB_FILE_NAME) {
 	throw new Error("DB_FILE_NAME environment variable is not set");
@@ -28,6 +29,7 @@ if (email && password) {
 			name: email.split("@")[0],
 			email,
 			password: await Bun.password.hash(password),
+			apiKeyHash: generateApiKey(),
 		});
 		console.log(`Created default user: ${email}`);
 	}
