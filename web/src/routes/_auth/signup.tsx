@@ -1,5 +1,4 @@
 import { useAppForm } from "@/lib/form";
-import { client } from "@/lib/hono";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
@@ -15,42 +14,50 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 
-export const Route = createFileRoute("/_auth/login")({
+export const Route = createFileRoute("/_auth/signup")({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
 	const navigate = Route.useNavigate();
 	const { queryClient } = Route.useRouteContext();
-	const { mutate, isPending } = useMutation({
-		mutationKey: ["login"],
-		mutationFn: async (payload: { email: string; password: string }) => {
-			const data = await client.api.auth.login.$post({
-				json: payload,
-			});
+	const { mutate, isPending, error } = useMutation({
+		mutationKey: ["signup"],
+		mutationFn: async (payload: {
+			name: string;
+			email: string;
+			password: string;
+		}) => {
+			const res = await fetch(
+				`${import.meta.env.VITE_API_URL}/api/auth/signup`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				},
+			);
 
-			if (data.status === 401) {
-				throw new Error("Invalid credentials");
+			const json = await res.json();
+
+			if (!res.ok) {
+				throw new Error(json.error ?? "Signup failed");
 			}
 
-			const json = await data.json();
-
 			localStorage.setItem("access_token", json.token);
-
 			queryClient.removeQueries({ queryKey: ["me"] });
-
-			navigate({
-				to: "/home",
-			});
+			navigate({ to: "/home" });
 		},
 	});
+
 	const form = useAppForm({
 		defaultValues: {
+			name: "",
 			email: "",
 			password: "",
 		},
 		validators: {
 			onChange: z.object({
+				name: z.string(),
 				email: z.string(),
 				password: z.string(),
 			}),
@@ -61,8 +68,8 @@ function RouteComponent() {
 	return (
 		<Card className="w-full max-w-sm">
 			<CardHeader className="text-center">
-				<CardTitle>Welcome back</CardTitle>
-				<CardDescription>Sign in to your account</CardDescription>
+				<CardTitle>Create an account</CardTitle>
+				<CardDescription>Sign up to get started</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<form
@@ -72,6 +79,22 @@ function RouteComponent() {
 					}}
 					className="space-y-4"
 				>
+					<form.AppField
+						name="name"
+						children={(field) => (
+							<div className="space-y-2">
+								<Label htmlFor="name">Name</Label>
+								<Input
+									id="name"
+									type="text"
+									placeholder="Your name"
+									value={field.state.value}
+									onChange={(e) => field.setValue(e.target.value)}
+								/>
+							</div>
+						)}
+					/>
+
 					<form.AppField
 						name="email"
 						children={(field) => (
@@ -104,18 +127,22 @@ function RouteComponent() {
 						)}
 					/>
 
+					{error && (
+						<p className="text-sm text-destructive">{error.message}</p>
+					)}
+
 					<form.AppForm>
 						<Button type="submit" disabled={isPending} className="w-full">
-							{isPending ? "Signing in..." : "Sign in"}
+							{isPending ? "Creating account..." : "Create account"}
 						</Button>
 					</form.AppForm>
 				</form>
 			</CardContent>
 			<CardFooter className="justify-center">
 				<p className="text-sm text-muted-foreground">
-					Don't have an account?{" "}
-					<Link to="/signup" className="underline underline-offset-4">
-						Sign up
+					Already have an account?{" "}
+					<Link to="/login" className="underline underline-offset-4">
+						Sign in
 					</Link>
 				</p>
 			</CardFooter>

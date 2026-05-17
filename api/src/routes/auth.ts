@@ -108,6 +108,10 @@ export default app
 		},
 	)
 	.post("/signup", async (c) => {
+		if (Bun.env.ALLOW_SIGNUP !== "true") {
+			return c.json({ error: "Signup is disabled" }, 403);
+		}
+
 		const body = await c.req.json();
 
 		const { data, success } = z

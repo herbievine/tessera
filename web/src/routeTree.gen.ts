@@ -16,6 +16,7 @@ import { Route as DashProfileRouteImport } from './routes/_dash/profile'
 import { Route as DashIntegrationsRouteImport } from './routes/_dash/integrations'
 import { Route as DashHomeRouteImport } from './routes/_dash/home'
 import { Route as DashAnalyticsRouteImport } from './routes/_dash/analytics'
+import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 
 const DashRoute = DashRouteImport.update({
@@ -51,6 +52,11 @@ const DashAnalyticsRoute = DashAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => DashRoute,
 } as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -60,6 +66,7 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof AuthLoginRoute
+  '/signup': typeof AuthSignupRoute
   '/analytics': typeof DashAnalyticsRoute
   '/home': typeof DashHomeRoute
   '/integrations': typeof DashIntegrationsRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof AuthLoginRoute
+  '/signup': typeof AuthSignupRoute
   '/analytics': typeof DashAnalyticsRoute
   '/home': typeof DashHomeRoute
   '/integrations': typeof DashIntegrationsRoute
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/_dash': typeof DashRouteWithChildren
   '/_auth/login': typeof AuthLoginRoute
+  '/_auth/signup': typeof AuthSignupRoute
   '/_dash/analytics': typeof DashAnalyticsRoute
   '/_dash/home': typeof DashHomeRoute
   '/_dash/integrations': typeof DashIntegrationsRoute
@@ -89,18 +98,27 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/signup'
     | '/analytics'
     | '/home'
     | '/integrations'
     | '/profile'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/analytics' | '/home' | '/integrations' | '/profile'
+  to:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/analytics'
+    | '/home'
+    | '/integrations'
+    | '/profile'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/_dash'
     | '/_auth/login'
+    | '/_auth/signup'
     | '/_dash/analytics'
     | '/_dash/home'
     | '/_dash/integrations'
@@ -164,6 +182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashAnalyticsRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_auth/signup': {
+      id: '/_auth/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/login': {
       id: '/_auth/login'
       path: '/login'
@@ -176,10 +201,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
+  AuthSignupRoute: typeof AuthSignupRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
+  AuthSignupRoute: AuthSignupRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

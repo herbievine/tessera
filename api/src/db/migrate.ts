@@ -25,14 +25,12 @@ const password = Bun.env.DEFAULT_PASSWORD;
 if (email && password) {
 	const existing = await db.select().from(schema.users).limit(1);
 	if (existing.length === 0) {
-		const e = email as string;
-		const p = password as string;
 		await db.insert(schema.users).values({
-			name: e.split("@")[0],
-			email: e,
-			password: await Bun.password.hash(p),
+			name: email!.split("@")[0],
+			email: email!,
+			password: await Bun.password.hash(password!),
 			apiKeyHash: generateApiKey(),
 		});
-		console.log(`Created default user: ${e}`);
+		console.log(`Created default user: ${email}`);
 	}
 }
