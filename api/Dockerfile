@@ -16,4 +16,4 @@ RUN mkdir -p api/data
 EXPOSE 3010
 
 WORKDIR /app/api
-CMD ["bun", "run", "src/index.ts"]
+CMD ["sh", "-c", "bun run src/db/migrate.ts && bun run src/index.ts"]
