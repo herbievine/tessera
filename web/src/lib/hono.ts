@@ -7,6 +7,6 @@ function getAuthHeader(): Record<string, string> {
 	return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export const client = hc<AppType>("http://localhost:3010", {
+export const client = hc<AppType>(import.meta.env.VITE_API_URL, {
 	headers: getAuthHeader,
 });

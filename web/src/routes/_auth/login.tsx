@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_auth/login")({
 });
 
 function RouteComponent() {
-  const navigate = Route.useNavigate();
+	const navigate = Route.useNavigate();
 	const { queryClient } = Route.useRouteContext();
 	const { mutate, isPending } = useMutation({
 		mutationKey: ["login"],

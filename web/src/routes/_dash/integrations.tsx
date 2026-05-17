@@ -1,15 +1,42 @@
 import { useState } from "react";
-import { useIntegrations, useDeleteIntegration, useConnectGarmin } from "@/api/integrations.query";
+import {
+	useIntegrations,
+	useDeleteIntegration,
+	useConnectGarmin,
+} from "@/api/integrations.query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Link2, Check, X, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import {
+	Link2,
+	Check,
+	X,
+	Trash2,
+	Calendar as CalendarIcon,
+} from "lucide-react";
 import { format } from "date-fns";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const Route = createFileRoute("/_dash/integrations")({
 	component: RouteComponent,
@@ -78,10 +105,10 @@ function GarminConnectSheet() {
 	});
 
 	const handleConnect = () => {
-		connect({ 
-			email, 
+		connect({
+			email,
 			password,
-			startDate: startDate ? format(startDate, "yyyy-MM-dd") : undefined
+			startDate: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
 		});
 	};
 
@@ -126,7 +153,11 @@ function GarminConnectSheet() {
 									className="w-full justify-start text-left font-normal"
 								>
 									<CalendarIcon className="mr-2 h-4 w-4" />
-									{startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+									{startDate ? (
+										format(startDate, "PPP")
+									) : (
+										<span>Pick a date</span>
+									)}
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent className="w-auto p-0" align="start">
@@ -144,7 +175,10 @@ function GarminConnectSheet() {
 					</div>
 				</div>
 				<div className="flex justify-end">
-					<Button onClick={handleConnect} disabled={isPending || !email || !password}>
+					<Button
+						onClick={handleConnect}
+						disabled={isPending || !email || !password}
+					>
 						{isPending ? "Connecting..." : "Connect"}
 					</Button>
 				</div>
@@ -156,14 +190,19 @@ function GarminConnectSheet() {
 function RouteComponent() {
 	const { integrations, isLoading } = useIntegrations();
 
-	const { mutate: deleteIntegration, isPending: isDeleting } = useDeleteIntegration({
-		onSuccess: () => {
-			window.location.reload();
-		},
-	});
+	const { mutate: deleteIntegration, isPending: isDeleting } =
+		useDeleteIntegration({
+			onSuccess: () => {
+				window.location.reload();
+			},
+		});
 
 	const handleDelete = (id: string) => {
-		if (!confirm("Disconnect this integration? This will delete all related data.")) {
+		if (
+			!confirm(
+				"Disconnect this integration? This will delete all related data.",
+			)
+		) {
 			return;
 		}
 		deleteIntegration(id);

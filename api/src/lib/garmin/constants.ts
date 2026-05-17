@@ -69,14 +69,29 @@ export const garminTypes = {
 		key: "hrv_last_night_avg",
 		unit: "ms",
 	},
-	hrv_status: {
-		name: "HRV Status",
-		key: "hrv_status",
-		unit: "status",
+	hrv_low_upper: {
+		name: "HRV Low Upper",
+		key: "hrv_low_upper",
+		unit: "ms",
+	},
+	hrv_balanced_low: {
+		name: "HRV Balanced Low",
+		key: "hrv_balanced_low",
+		unit: "ms",
+	},
+	hrv_balanced_upper: {
+		name: "HRV Balanced Upper",
+		key: "hrv_balanced_upper",
+		unit: "ms",
+	},
+	hrv_marker_value: {
+		name: "HRV Marker Value",
+		key: "hrv_marker_value",
+		unit: "ms",
 	},
 } as const;
 
-export const garminKeys = [
+export const garminKeys: (keyof typeof garminTypes)[] = [
 	"sleep_score",
 	"sleep_quality",
 	"sleep_total_hours",
@@ -91,5 +106,4 @@ export const garminKeys = [
 	"heart_rate",
 	"hrv_weekly_avg",
 	"hrv_last_night_avg",
-	"hrv_status",
 ] as const;

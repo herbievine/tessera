@@ -101,7 +101,7 @@ app.get(
 		searchParams.append("scope", "user.metrics");
 		searchParams.append(
 			"redirect_uri",
-			Bun.env.BASE_URL + "/api/withings/callback",
+			Bun.env.API_URL + "/api/withings/callback",
 		);
 		searchParams.append("state", `${token.sub}:${Date.now()}`);
 

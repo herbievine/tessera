@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { db } from "../db/index.ts";
 import * as schema from "../db/schema.ts";
 import { eq, and, gte, lte } from "drizzle-orm";
+import dayjs from "dayjs";
 
 // export const entities = [
 //   'weight',
@@ -371,7 +372,21 @@ export const garminEntityMap = {
 		key: "hrv_status",
 		unit: "status",
 	},
+	hrv_low_upper: {
+		key: "hrv_low_upper",
+		unit: "ms",
+	},
+	hrv_balanced_low: {
+		key: "hrv_balanced_low",
+		unit: "ms",
+	},
+	hrv_balanced_upper: {
+		key: "hrv_balanced_upper",
+		unit: "ms",
+	},
 } as const;
+
+export const granularEntities = ["heart_rate"] as const;
 
 export const entityMap = {
 	...macrofactorEntityMap,
@@ -419,7 +434,12 @@ const app = new Hono().get("/:entity", async (c) => {
 			conditions.push(gte(schema.observations.observedAt, new Date(startDate)));
 		}
 		if (endDate) {
-			conditions.push(lte(schema.observations.observedAt, new Date(endDate + "T23:59:59.999Z")));
+			conditions.push(
+				lte(
+					schema.observations.observedAt,
+					new Date(endDate + "T23:59:59.999Z"),
+				),
+			);
 		}
 		return conditions.length > 0 ? and(...conditions) : undefined;
 	};
@@ -428,25 +448,99 @@ const app = new Hono().get("/:entity", async (c) => {
 		const dateFilter = buildDateFilter();
 		const conditions: any[] = [eq(schema.observations.type, entity as any)];
 		if (dateFilter) conditions.push(dateFilter);
-		
+
 		const data = await db
 			.select({
 				date: schema.observations.observedAt,
-				label: schema.observations.label,
-				unit: schema.observations.unit,
 				value: schema.observations.value,
 			})
 			.from(schema.observations)
 			.where(and(...conditions));
 
-		return c.json(
-			data.map((item: any) => ({
-				date: item.date,
+		const isGranular = granularEntities.includes(entity as any);
+
+		if (isGranular) {
+			const start = startDate ? dayjs(startDate) : dayjs().subtract(30, "day");
+			const end = endDate ? dayjs(endDate) : dayjs();
+			const diffHours = end.diff(start, "hour");
+			const diffDays = end.diff(start, "day");
+
+			let aggregatedData: { date: string; value: number }[] = [];
+
+			if (diffHours <= 24) {
+				aggregatedData = data.map((d: any) => ({
+					date: dayjs(d.date).toISOString(),
+					value: d.value,
+				}));
+			} else if (diffDays <= 7) {
+				const buckets = new Map<string, number[]>();
+				for (const d of data) {
+					const time = dayjs(d.date);
+					const bucketKey = time
+						.format("YYYY-MM-DD HH:")
+						.concat(
+							String(Math.floor(time.minute() / 15) * 15).padStart(2, "0"),
+						);
+					if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
+					buckets.get(bucketKey)!.push(d.value);
+				}
+				aggregatedData = Array.from(buckets.entries())
+					.map(([bucketKey, values]) => ({
+						date: dayjs(bucketKey, "YYYY-MM-DD HH:mm").toISOString(),
+						value: values.reduce((a, b) => a + b, 0) / values.length,
+					}))
+					.sort(
+						(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+					);
+			} else {
+				const buckets = new Map<string, number[]>();
+				for (const d of data) {
+					const bucketKey = dayjs(d.date).format("YYYY-MM-DD HH:00");
+					if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
+					buckets.get(bucketKey)!.push(d.value);
+				}
+				aggregatedData = Array.from(buckets.entries())
+					.map(([bucketKey, values]) => ({
+						date: dayjs(bucketKey, "YYYY-MM-DD HH:mm").toISOString(),
+						value: values.reduce((a, b) => a + b, 0) / values.length,
+					}))
+					.sort(
+						(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+					);
+			}
+
+			return c.json(
+				aggregatedData.map((d) => ({
+					date: d.date,
+					label: entity,
+					unit: garminEntityMap[entity as keyof typeof garminEntityMap].unit,
+					value: Math.round(d.value * 10) / 10,
+				})),
+			);
+		}
+
+		const allDates: string[] = [];
+		const start = startDate ? dayjs(startDate) : dayjs().subtract(30, "day");
+		const end = endDate ? dayjs(endDate) : dayjs();
+		let current = start;
+		while (current.isBefore(end) || current.isSame(end, "day")) {
+			allDates.push(current.format("YYYY-MM-DD"));
+			current = current.add(1, "day");
+		}
+
+		const result = allDates.map((dateStr) => {
+			const dayData = data.find(
+				(d: any) => dayjs(d.date).format("YYYY-MM-DD") === dateStr,
+			);
+			return {
+				date: dateStr,
 				label: entity,
 				unit: garminEntityMap[entity as keyof typeof garminEntityMap].unit,
-				value: item.value,
-			})),
-		);
+				value: dayData?.value ?? null,
+			};
+		});
+
+		return c.json(result);
 	}
 
 	if (entity in macrofactorEntityMap) {
@@ -454,11 +548,15 @@ const app = new Hono().get("/:entity", async (c) => {
 		const entityKey = entity as MacroFactorEntity;
 		const key = macrofactorEntityMap[entityKey].key;
 		const col = schema.macrofactorDaily[key as typeof key];
-		
+
 		const mfDateFilter: any[] = [];
-		if (startDate) mfDateFilter.push(gte(schema.macrofactorDaily.date, new Date(startDate)));
-		if (endDate) mfDateFilter.push(lte(schema.macrofactorDaily.date, new Date(endDate + "T23:59:59.999Z")));
-		
+		if (startDate)
+			mfDateFilter.push(gte(schema.macrofactorDaily.date, new Date(startDate)));
+		if (endDate)
+			mfDateFilter.push(
+				lte(schema.macrofactorDaily.date, new Date(endDate + "T23:59:59.999Z")),
+			);
+
 		const data = await db
 			.select({
 				date: schema.macrofactorDaily.date,
@@ -467,14 +565,43 @@ const app = new Hono().get("/:entity", async (c) => {
 			.from(schema.macrofactorDaily)
 			.where(mfDateFilter.length > 0 ? and(...mfDateFilter) : undefined);
 
-		return c.json(
-			data.map((item: any) => ({
-				date: item.date,
+		// Generate all dates in range
+		const allDates: string[] = [];
+		const start = startDate ? dayjs(startDate) : dayjs().subtract(30, "day");
+		const end = endDate ? dayjs(endDate) : dayjs();
+		let current = start;
+		while (current.isBefore(end) || current.isSame(end, "day")) {
+			allDates.push(current.format("YYYY-MM-DD"));
+			current = current.add(1, "day");
+		}
+
+		// Map data to dates, including dates with no data
+		const result = allDates.map((dateStr) => {
+			const dayData = data.find(
+				(d: any) => dayjs(d.date).format("YYYY-MM-DD") === dateStr,
+			);
+			return {
+				date: dateStr,
 				label: entity,
 				unit: macrofactorEntityMap[entity as keyof typeof macrofactorEntityMap]
 					.unit,
-				value: item.value,
-			})),
+				value: dayData?.value ?? null,
+			};
+		});
+
+		return c.json(result);
+	}
+
+	// Fallback for other observation types (withings derived data like fat_ratio_pct, etc.)
+	const obsConditions: any[] = [eq(schema.observations.type, entity as any)];
+	if (startDate) {
+		obsConditions.push(
+			gte(schema.observations.observedAt, new Date(startDate)),
+		);
+	}
+	if (endDate) {
+		obsConditions.push(
+			lte(schema.observations.observedAt, new Date(endDate + "T23:59:59.999Z")),
 		);
 	}
 
@@ -482,15 +609,35 @@ const app = new Hono().get("/:entity", async (c) => {
 	const data = await db
 		.select({
 			date: schema.observations.observedAt,
-			label: schema.observations.label,
-			unit: schema.observations.unit,
 			value: schema.observations.value,
 		})
 		.from(schema.observations)
-		// @ts-ignore
-		.where(eq(schema.observations.type, entity));
+		.where(and(...obsConditions));
 
-	return c.json(data);
+	// Generate all dates in range
+	const allDates: string[] = [];
+	const start = startDate ? dayjs(startDate) : dayjs().subtract(30, "day");
+	const end = endDate ? dayjs(endDate) : dayjs();
+	let current = start;
+	while (current.isBefore(end) || current.isSame(end, "day")) {
+		allDates.push(current.format("YYYY-MM-DD"));
+		current = current.add(1, "day");
+	}
+
+	// Map data to dates
+	const result = allDates.map((dateStr) => {
+		const dayData = data.find(
+			(d: any) => dayjs(d.date).format("YYYY-MM-DD") === dateStr,
+		);
+		return {
+			date: dateStr,
+			label: entity,
+			unit: "%",
+			value: dayData?.value ?? null,
+		};
+	});
+
+	return c.json(result);
 });
 
 export default app;

@@ -10,6 +10,7 @@ import garminRoute from "./routes/garmin";
 import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
 import { jwt } from "hono/jwt";
+import { logger } from "hono/logger";
 
 if (!Bun.env.API_KEY) {
 	throw new Error("API_KEY environment variable is not set");
@@ -17,18 +18,20 @@ if (!Bun.env.API_KEY) {
 
 const app = new Hono().basePath("/api");
 
+app.use(
+	"*",
+	cors({
+		origin: [Bun.env.FRONT_END_URL!],
+	}),
+);
+
+app.use(logger());
+
 const routes = app
-	.use(
-		"*",
-		cors({
-			origin: [Bun.env.FRONT_END_URL!],
-		}),
-	)
 	.get("/", (c) => c.json({ health: "ok" }))
 	.use("/integrations/*", jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }))
 	.use("/trends/*", jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }))
 	.use("/garmin/*", jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }))
-	.use("/import/*", bearerAuth({ token: Bun.env.API_KEY! }))
 	.route("/auth", authRoute)
 	.route("/cron", cronRoute)
 	.route("/integrations", integrationsRoute)
@@ -61,5 +64,5 @@ Bun.serve({
 	},
 });
 
-console.log(`HTTP Server running on ${Bun.env.BASE_URL}/api`);
-console.log(`MCP Server running on ${Bun.env.BASE_URL}/mcp`);
+console.log(`HTTP Server running on ${Bun.env.API_URL}/api`);
+console.log(`MCP Server running on ${Bun.env.API_URL}/mcp`);

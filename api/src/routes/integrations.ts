@@ -26,11 +26,11 @@ app.delete("/:id", async (c) => {
 		.where(
 			and(
 				eq(schema.integrations.userId, token.sub),
-        or(
-          eq(schema.integrations.id, integrationId),
-          // @ts-ignore
-          eq(schema.integrations.vendor, integrationId),
-				)
+				or(
+					eq(schema.integrations.id, integrationId),
+					// @ts-ignore
+					eq(schema.integrations.vendor, integrationId),
+				),
 			),
 		)
 		.returning();

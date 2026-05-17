@@ -9,6 +9,19 @@
         "mcp"
       ],
       "enabled": true
+    },
+    "sqlite": {
+      "type": "local",
+      "command": [
+        "uv",
+        "--directory",
+        "/tmp",
+        "run",
+        "mcp-server-sqlite",
+        "--db-path",
+        "/Users/herbie/dev/tessera/api/data/sqlite.db"
+      ],
+      "enabled": true
     }
   }
 }

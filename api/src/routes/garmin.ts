@@ -44,25 +44,25 @@ app.post(
 
 		if (integration) {
 			return c.json({ error: "User already connected" }, 400);
-    }
+		}
 
-    const garminApiUrl = process.env.GARMIN_API_URL || "http://localhost:3011";
+		const garminApiUrl = process.env.GARMIN_API_URL || "http://localhost:3011";
 
-    const { data: garmin } = await fetcher(
-      `${garminApiUrl}/user/profile`,
-      z.object({ id: z.number() }),
-      {
-        headers: {
-          Authorization: `Bearer: ${Bun.env.GARMIN_ADMIN_KEY}`
-        }
-      }
-    )
+		const { data: garmin } = await fetcher(
+			`${garminApiUrl}/user/profile`,
+			z.object({ id: z.number() }),
+			{
+				headers: {
+					Authorization: `Bearer: ${Bun.env.GARMIN_ADMIN_KEY}`,
+				},
+			},
+		);
 
-    console.log(garmin)
+		console.log(garmin);
 
-    if (!garmin?.id) {
-      return c.json({ error: "Garmin user not found" }, 404);
-    }
+		if (!garmin?.id) {
+			return c.json({ error: "Garmin user not found" }, 404);
+		}
 
 		await db.insert(schema.integrations).values({
 			vendor: "garmin",
@@ -84,10 +84,10 @@ app.post(
 
 				if (user?.apiKeyHash) {
 					const y = await fetch(
-						`${Bun.env.BASE_URL}/api/cron/garmin?startDate=${data.startDate}`,
+						`${Bun.env.API_URL}/api/cron/garmin?startDate=${data.startDate}`,
 						{
-              method: "POST",
-              headers: { Authorization: `Bearer ${user.apiKeyHash}` }
+							method: "POST",
+							headers: { Authorization: `Bearer ${user.apiKeyHash}` },
 						},
 					);
 

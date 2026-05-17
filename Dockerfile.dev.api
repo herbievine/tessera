@@ -1,0 +1,7 @@
+FROM oven/bun:latest
+
+WORKDIR /app
+
+EXPOSE 3010
+
+CMD ["sh", "-c", "bun install && cd api && bun run --hot src/index.ts"]

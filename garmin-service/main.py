@@ -111,12 +111,18 @@ def format_sleep_data(raw: dict) -> dict:
     """Format sleep data into structured format."""
     dto = raw.get("dailySleepDTO", {})
 
-    levels = dto.get("sleepLevels", {})
+    # levels = dto.get("sleepLevels", {})
 
     return {
-        "date": dto.get("sleepStartTimeGMT", ""),
-        "sleep_score": dto.get("sleepScore"),
-        "quality": dto.get("sleepQuality"),
+        "date": dto.get("calendarDate"),
+        "sleep_score": dto.get("sleepScores").get("overall").get("value"),
+        "quality": dto.get("sleepScores").get("overall").get("qualifierKey"),
+        "light_pct_score": dto.get("sleepScores").get("lightPercentage").get("value"),
+        "light_pct_quality": dto.get("sleepScores").get("lightPercentage").get("qualifierKey"),
+        "deep_pct_score": dto.get("sleepScores").get("deepPercentage").get("value"),
+        "deep_pct_quality": dto.get("sleepScores").get("deepPercentage").get("qualifierKey"),
+        "rem_pct_score": dto.get("sleepScores").get("remPercentage").get("value"),
+        "rem_pct_quality": dto.get("sleepScores").get("remPercentage").get("qualifierKey"),
         "total_seconds": dto.get("sleepTimeSeconds"),
         "total_hours": round(dto.get("sleepTimeSeconds", 0) / 3600, 1),
         "deep_seconds": dto.get("deepSleepSeconds"),
@@ -127,11 +133,10 @@ def format_sleep_data(raw: dict) -> dict:
         "rem_hours": round(dto.get("remSleepSeconds", 0) / 3600, 1),
         "awake_seconds": dto.get("awakeSleepSeconds"),
         "awake_hours": round(dto.get("awakeSleepSeconds", 0) / 3600, 1),
-        "restless_seconds": dto.get("restlessSeconds"),
-        "restless_percentage": dto.get("restlessPeriodsPercentage"),
+        # "restless_seconds": dto.get("restlessSeconds"),
+        # "restless_percentage": dto.get("restlessPeriodsPercentage"),
         "awake_count": dto.get("awakeCount"),
-        "dasd": dto,
-        "timeseries": levels.get("deep", []) + levels.get("light", []) + levels.get("rem", []) + levels.get("awake", [])
+        # "dasd": dto,
     }
 
 
@@ -154,9 +159,33 @@ def format_heart_rate_data(raw: dict) -> dict:
         "resting_hr": raw.get("restingHeartRate"),
         "max_hr": raw.get("maxHeartRate"),
         "min_hr": raw.get("minHeartRate"),
-        "avg_hr": raw.get("averageHeartRate"),
-        "timeseries": timeseries
+        "timeseries": timeseries,
+        "raw": raw
     }
+
+
+def format_hrv_data(raw: list[dict]) -> list[dict] | None:
+    """Format HRV data"""
+    timeseries = []
+    for hrv in raw:
+        data = hrv.get("data")
+        if data is None:
+            return None
+
+        summary = data.get("hrvSummary")
+        readings = data.get("hrvReadings")
+        timeseries.append({
+            "date": summary.get("calendarDate"),
+            "lastNightAvg": summary.get("lastNightAvg"),
+            "lowUpper": summary.get("baseline").get("lowUpper"),
+            "balancedLow": summary.get("baseline").get("balancedLow"),
+            "balancedUpper": summary.get("baseline").get("balancedUpper"),
+            "markerValue": summary.get("baseline").get("markerValue"),
+            "readings": readings,
+            "s": hrv,
+        })
+
+    return timeseries
 
 
 class GarminHandler(BaseHTTPRequestHandler):
@@ -203,19 +232,23 @@ class GarminHandler(BaseHTTPRequestHandler):
             self.send_error_response("Unauthorized", 401)
             return
 
-        if not api:
-            self.send_error_response("API not initialized", 503)
-            return
-
         parsed = urlparse(self.path)
         path = parsed.path
         query = parse_qs(parsed.query)
 
         try:
             if path == "/health":
-                self.send_json_response({"status": "healthy"})
+                self.send_json_response({
+                    "status": "healthy",
+                    "authenticated": api is not None
+                })
+                return
 
-            elif path == "/user/profile":
+            if not api:
+                self.send_error_response("Not authenticated - call /update-credentials first", 401)
+                return
+
+            if path == "/user/profile":
                 success, result, error = safe_api_call(api.get_user_profile)
                 self.send_json_response(result if success else {"error": error})
 
@@ -310,7 +343,7 @@ class GarminHandler(BaseHTTPRequestHandler):
                             "data": result
                         })
                     current += timedelta(days=1)
-                self.send_json_response({"period": {"start": start_date.isoformat(), "end": end_date.isoformat()}, "data": hrv_data})
+                self.send_json_response(format_hrv_data(hrv_data))
 
             elif path == "/rhr":
                 target_date = get_date_param(query, "date", config.today)
@@ -496,8 +529,8 @@ def main():
     try:
         api = init_api()
     except Exception as e:
-        logger.error(f"Failed to initialize API: {e}")
-        sys.exit(1)
+        logger.warning(f"Failed to initialize API: {e}")
+        logger.info("Service starting without API - use /update-credentials to authenticate")
 
     server = HTTPServer(("", config.port), GarminHandler)
     logger.info(f"Server running on port {config.port}")

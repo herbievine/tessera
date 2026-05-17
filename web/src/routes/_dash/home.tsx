@@ -1,5 +1,14 @@
-import { useTrends, type TrendPoint } from "@/api/trends.query";
 import { createFileRoute } from "@tanstack/react-router";
+import {
+	Area,
+	CartesianGrid,
+	ComposedChart,
+	Line,
+	LineChart,
+	XAxis,
+	YAxis,
+} from "recharts";
+import { type TrendPoint, useTrends } from "@/api/trends.query";
 import {
 	Card,
 	CardContent,
@@ -8,23 +17,179 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
-	type ChartConfig,
 } from "@/components/ui/chart";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 export const Route = createFileRoute("/_dash/home")({
 	component: RouteComponent,
 });
 
-const chartConfig = {
+const weightChartConfig = {
 	weight: {
 		label: "Weight",
 		color: "var(--chart-1)",
 	},
 } satisfies ChartConfig;
+
+const hrvChartConfig = {
+	hrv: {
+		label: "Last Night HRV",
+		color: "var(--chart-1)",
+	},
+	band: {
+		label: "Balanced Range",
+		color: "var(--chart-2)",
+	},
+} satisfies ChartConfig;
+
+function HRVChart() {
+	const { trends: hrvAvg, isLoading: loading1 } =
+		useTrends("hrv_last_night_avg");
+	const { trends: balancedLow, isLoading: loading2 } =
+		useTrends("hrv_balanced_low");
+	const { trends: balancedUpper, isLoading: loading3 } =
+		useTrends("hrv_balanced_upper");
+
+	const isLoading = loading1 || loading2 || loading3
+
+	const mergedData = (() => {
+		if (!hrvAvg) return [];
+		const map = new Map<
+			string,
+			{
+				date: string;
+				sortTime: number;
+				hrv?: number | null;
+				band?: [number, number];
+			}
+		>();
+
+		hrvAvg.forEach((t) => {
+			const dateStr = new Date(t.date).toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+			});
+			const sortTime = new Date(t.date).getTime();
+			map.set(dateStr, { date: dateStr, sortTime, hrv: t.value });
+		});
+
+		balancedLow?.forEach((t) => {
+			const dateStr = new Date(t.date).toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+			});
+			const existing = map.get(dateStr);
+			if (existing) {
+				const low = t.value;
+				const upper = (existing as any).balancedUpperValue;
+				if (upper != null) {
+					existing.band = [low || 0, upper];
+					delete (existing as any).balancedUpperValue;
+				} else {
+					(existing as any).balancedLowValue = low;
+				}
+			}
+		});
+
+		balancedUpper?.forEach((t) => {
+			const dateStr = new Date(t.date).toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+			});
+			const existing = map.get(dateStr);
+			if (existing) {
+				const upper = t.value;
+				const low = (existing as any).balancedLowValue;
+				if (low != null) {
+					existing.band = [low, upper || 0];
+					delete (existing as any).balancedLowValue;
+				} else {
+					(existing as any).balancedUpperValue = upper;
+				}
+			}
+		});
+
+		return Array.from(map.values()).sort((a, b) => a.sortTime - b.sortTime);
+	})();
+
+	const hasBandData = mergedData.some((d) => d.band != null);
+
+	if (isLoading) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Heart Rate Variability</CardTitle>
+					<CardDescription>Loading...</CardDescription>
+				</CardHeader>
+			</Card>
+		);
+	}
+
+	if (mergedData.length === 0) {
+		return null;
+	}
+
+	return (
+		<Card className="w-full">
+			<CardHeader>
+				<CardTitle>Heart Rate Variability</CardTitle>
+				<CardDescription>HRV with balanced range bands</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<ChartContainer config={hrvChartConfig} className="h-[250px] w-full">
+					<ComposedChart
+						accessibilityLayer
+						data={mergedData}
+						margin={{ left: 12, right: 12 }}
+					>
+						<CartesianGrid vertical={false} />
+						<YAxis
+							tickLine={false}
+							axisLine={false}
+							tickMargin={8}
+							domain={["auto", "auto"]}
+							tickFormatter={(v) => `${v} ms`}
+						/>
+						<XAxis
+							dataKey="date"
+							tickLine={false}
+							axisLine={false}
+							tickMargin={8}
+						/>
+						<ChartTooltip
+							cursor={false}
+							content={<ChartTooltipContent hideLabel />}
+						/>
+						{hasBandData && (
+							<Area
+								type="monotone"
+								dataKey="band"
+								stroke="none"
+								fill="green"
+								fillOpacity={0.2}
+								isAnimationActive={false}
+								dot={false}
+								activeDot={false}
+							/>
+						)}
+						<Line
+							dataKey="hrv"
+              type="natural"
+							stroke="var(--chart-2)"
+							strokeWidth={2}
+							isAnimationActive={false}
+							connectNulls={true}
+							dot={false}
+						/>
+					</ComposedChart>
+				</ChartContainer>
+			</CardContent>
+		</Card>
+	);
+}
 
 function RouteComponent() {
 	const { trends: weightTrends, isLoading: weightLoading } =
@@ -47,6 +212,7 @@ function RouteComponent() {
 
 	return (
 		<div className="space-y-6">
+			<HRVChart />
 			<Card>
 				<CardHeader>
 					<CardTitle>Weight Trend</CardTitle>
@@ -56,7 +222,10 @@ function RouteComponent() {
 					{weightLoading ? (
 						<p className="text-sm text-muted-foreground">Loading...</p>
 					) : chartData && chartData.length > 0 ? (
-						<ChartContainer config={chartConfig} className="h-[300px] w-full">
+						<ChartContainer
+							config={weightChartConfig}
+							className="h-[300px] w-full"
+						>
 							<LineChart
 								accessibilityLayer
 								data={chartData}
@@ -87,14 +256,11 @@ function RouteComponent() {
 								<Line
 									dataKey="weight"
 									type="natural"
-									stroke="var(--color-weight)"
-									strokeWidth={2}
-									dot={{
-										fill: "var(--color-weight)",
-									}}
-									activeDot={{
-										r: 6,
-									}}
+              		stroke="var(--chart-2)"
+              		strokeWidth={2}
+              		isAnimationActive={false}
+              		connectNulls={true}
+              		dot={false}
 								/>
 							</LineChart>
 						</ChartContainer>

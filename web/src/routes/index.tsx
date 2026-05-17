@@ -1,10 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ComponentExample } from "@/components/component-example";
+import { type UseMeReturn, meOptions } from "@/api/me.query";
+import { tryCatch } from "@/utils/try-catch";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute("/")({
+	beforeLoad: async ({ context }) => {
+		const { data } = await tryCatch(
+			context.queryClient.ensureQueryData<UseMeReturn>(meOptions()),
+		);
 
-function App() {
-return (
-  <ComponentExample />
-);
-}
+		if (data !== null) {
+			throw redirect({
+				to: "/home",
+			});
+		}
+
+		throw redirect({
+			to: "/login",
+		});
+	},
+	component: () => null,
+});

@@ -1,0 +1,77 @@
+services:
+  garmin:
+    build:
+      context: ./garmin-service
+      dockerfile: Dockerfile
+    ports:
+      - "3011:3011"
+    env_file:
+      - .env
+    volumes:
+      - ./garmin-service:/app
+      - ./data/garmin-tokens:/data
+    command: ["python", "main.py"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3011/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev.api
+    ports:
+      - "3010:3010"
+    environment:
+      - API_URL=${API_URL}
+      - FRONT_END_URL=${FRONT_END_URL}
+      - DB_FILE_NAME=${DB_FILE_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - API_KEY=${API_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - WITHINGS_CLIENT_ID=${WITHINGS_CLIENT_ID}
+      - WITHINGS_CLIENT_SECRET=${WITHINGS_CLIENT_SECRET}
+      - GARMIN_API_URL=${GARMIN_API_URL}
+      - GARMIN_ADMIN_KEY=${GARMIN_ADMIN_KEY}
+    volumes:
+      - .:/app
+      - api_node_modules:/app/node_modules
+      - api_web_node_modules:/app/web/node_modules
+      - api_api_node_modules:/app/api/node_modules
+    working_dir: /app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3010/api/auth/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev.web
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=${API_URL:-http://localhost:3010}
+    volumes:
+      - .:/app
+      - web_node_modules:/app/node_modules
+      - web_web_node_modules:/app/web/node_modules
+      - web_api_node_modules:/app/api/node_modules
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      - api
+
+volumes:
+  api_node_modules:
+  api_web_node_modules:
+  api_api_node_modules:
+  web_node_modules:
+  web_web_node_modules:
+  web_api_node_modules:

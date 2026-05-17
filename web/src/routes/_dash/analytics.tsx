@@ -21,6 +21,7 @@ export const Route = createFileRoute("/_dash/analytics")({
 
 type ChartDataPoint = {
 	date: string;
+	_sortTime: number;
 	[key: string]: string | number;
 };
 
@@ -41,13 +42,35 @@ function mergeChartData(
 	allData.forEach((dataSet, dataSetIndex) => {
 		if (!dataSet) return;
 		dataSet.forEach((point) => {
-			const dateStr = new Date(point.date).toLocaleDateString("en-US", {
-				month: "short",
-				day: "numeric",
-			});
+			const isGranular = point.date.includes("T");
+			const sortTime = isGranular
+				? new Date(point.date).getTime()
+				: new Date(point.date + "T00:00:00").getTime();
+
+			let dateStr: string;
+			if (isGranular) {
+				const date = new Date(point.date);
+				dateStr =
+					date.toLocaleDateString("en-US", {
+						month: "short",
+						day: "numeric",
+					}) +
+					" " +
+					date.toLocaleTimeString("en-US", {
+						hour: "2-digit",
+						minute: "2-digit",
+						hour12: false,
+					});
+			} else {
+				dateStr = new Date(point.date).toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+				});
+			}
+
 			let existing = mergedData.find((d) => d.date === dateStr);
 			if (!existing) {
-				existing = { date: dateStr };
+				existing = { date: dateStr, _sortTime: sortTime };
 				mergedData.push(existing);
 			}
 			(existing as Record<string, number | string>)[entities[dataSetIndex]] =
@@ -55,9 +78,7 @@ function mergeChartData(
 		});
 	});
 
-	return mergedData.sort(
-		(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-	);
+	return mergedData.sort((a, b) => a._sortTime - b._sortTime);
 }
 
 function TrendChart({
@@ -171,7 +192,7 @@ function TrendChart({
 							<Line
 								key={entity}
 								dataKey={entity}
-								type="natural"
+								type="linear"
 								stroke={chartConfig[entity]?.color}
 								strokeWidth={2}
 								dot={false}
@@ -185,7 +206,9 @@ function TrendChart({
 }
 
 function RouteComponent() {
-	const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+	const params = new URLSearchParams(
+		typeof window !== "undefined" ? window.location.search : "",
+	);
 	const startDate = params.get("startDate") || undefined;
 	const endDate = params.get("endDate") || undefined;
 

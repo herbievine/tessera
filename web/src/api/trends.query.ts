@@ -19,7 +19,7 @@ async function fn(entity: string, startDate?: string, endDate?: string) {
 	const query: Record<string, string> = {};
 	if (startDate) query.startDate = startDate;
 	if (endDate) query.endDate = endDate;
-	
+
 	const res = await client.api.trends[`:entity`].$get({
 		param: { entity },
 		...(Object.keys(query).length > 0 ? { query } : {}),
@@ -32,7 +32,12 @@ async function fn(entity: string, startDate?: string, endDate?: string) {
 	return [];
 }
 
-export function trendsOptions(entity: string, startDate?: string, endDate?: string, options: Options = {}) {
+export function trendsOptions(
+	entity: string,
+	startDate?: string,
+	endDate?: string,
+	options: Options = {},
+) {
 	return queryOptions({
 		queryKey: ["trends", entity, startDate, endDate],
 		queryFn: () => fn(entity, startDate, endDate),
@@ -41,8 +46,15 @@ export function trendsOptions(entity: string, startDate?: string, endDate?: stri
 	});
 }
 
-export function useTrends(entity: string, startDate?: string, endDate?: string, options: Options = {}) {
-	const { data, ...query } = useQuery(trendsOptions(entity, startDate, endDate, options));
+export function useTrends(
+	entity: string,
+	startDate?: string,
+	endDate?: string,
+	options: Options = {},
+) {
+	const { data, ...query } = useQuery(
+		trendsOptions(entity, startDate, endDate, options),
+	);
 
 	return {
 		trends: data,

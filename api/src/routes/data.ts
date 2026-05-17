@@ -13,9 +13,9 @@ export const dataOptions = {
 const app = new Hono().get("/:entity", async (c) => {
 	const entity = c.req.param("entity") as string;
 
-  if (!(entity in dataOptions)) {
-    return c.json({ error: "Entity not found" }, 404);
-  }
+	if (!(entity in dataOptions)) {
+		return c.json({ error: "Entity not found" }, 404);
+	}
 
 	const data = await db
 		.select({

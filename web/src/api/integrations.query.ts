@@ -60,7 +60,11 @@ export function useDeleteIntegration(
 }
 
 export function useConnectGarmin(
-	options: UseMutationOptions<void, Error, { email: string; password: string; startDate?: string }> = {},
+	options: UseMutationOptions<
+		void,
+		Error,
+		{ email: string; password: string; startDate?: string }
+	> = {},
 ) {
 	return useMutation({
 		mutationKey: ["connectGarmin"],

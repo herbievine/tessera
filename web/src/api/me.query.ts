@@ -3,24 +3,24 @@ import {
 	queryOptions,
 	useQuery,
 	useSuspenseQuery,
-  type QueryOptions,
+	type QueryOptions,
 } from "@tanstack/react-query";
 
 export type UseMeReturn = Awaited<ReturnType<typeof fn>>;
 type Options = QueryOptions<UseMeReturn>;
 
 async function fn() {
-  const res = await client.api.auth.me.$get()
+	const res = await client.api.auth.me.$get();
 
-  if (res.ok) {
-    const user = await res.json()
+	if (res.ok) {
+		const user = await res.json();
 
-    // localStorage.setItem("access_token", user.accessToken)
+		localStorage.setItem("access_token", user.token)
 
-    return user
-  }
+		return user;
+	}
 
-  return null
+	return null;
 }
 
 export function meOptions(options: Options = {}) {
