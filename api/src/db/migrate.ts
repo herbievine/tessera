@@ -17,3 +17,18 @@ const sqlite = new Database(Bun.env.DB_FILE_NAME);
 const db = drizzle({ client: sqlite, relations: schema.relations, schema });
 
 migrate(db, { migrationsFolder: "./drizzle" });
+
+const email = Bun.env.DEFAULT_EMAIL;
+const password = Bun.env.DEFAULT_PASSWORD;
+
+if (email && password) {
+	const existing = await db.select().from(schema.users).limit(1);
+	if (existing.length === 0) {
+		await db.insert(schema.users).values({
+			name: email.split("@")[0],
+			email,
+			password: await Bun.password.hash(password),
+		});
+		console.log(`Created default user: ${email}`);
+	}
+}
