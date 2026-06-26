@@ -44,6 +44,7 @@ export type AppType = typeof routes;
 
 Bun.serve({
 	port: 3010,
+	idleTimeout: 0,
 	routes: {
 		"/api/*": (req) => app.fetch(req),
 		"/*": (req) => {
