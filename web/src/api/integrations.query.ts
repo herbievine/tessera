@@ -11,7 +11,7 @@ export type UseIntegrationsReturn = Awaited<ReturnType<typeof fn>>;
 type Options = QueryOptions<UseIntegrationsReturn>;
 
 async function fn() {
-	const res = await (client.api as any).integrations.$get();
+	const res = await client.api.integrations.$get();
 
 	if (res.ok) {
 		return res.json();
@@ -44,13 +44,35 @@ export function useDeleteIntegration(
 	return useMutation({
 		mutationKey: ["deleteIntegration"],
 		mutationFn: async (id: string) => {
-			const res = await (client.api.integrations as any)[":id"].$delete({
+			const res = await client.api.integrations[":id"].$delete({
 				param: { id },
 			});
 
 			if (!res.ok) {
 				throw new Error("Failed to delete integration");
 			}
+		},
+		onSuccess: (...params) => {
+			options?.onSuccess?.(...params);
+		},
+		...options,
+	});
+}
+
+export function useConnectWithings(
+	options: UseMutationOptions<{ url: string }, Error, void> = {},
+) {
+	return useMutation({
+		mutationKey: ["connectWithings"],
+		mutationFn: async () => {
+			const res = await client.api.withings.connect.$get();
+			const json = await res.json();
+
+			if ("error" in json) {
+				throw new Error(json.error || "Failed to connect Withings");
+			}
+
+			return json;
 		},
 		onSuccess: (...params) => {
 			options?.onSuccess?.(...params);
@@ -69,11 +91,11 @@ export function useConnectGarmin(
 	return useMutation({
 		mutationKey: ["connectGarmin"],
 		mutationFn: async ({ email, password, startDate }) => {
-			const res = await (client.api.garmin as any).connect.$post({
+			const res = await client.api.garmin.connect.$post({
 				json: { email, password, startDate },
 			});
 
-			if (!res.ok) {
+			if (res.status !== 201) {
 				const error = await res.json();
 				throw new Error(error.error || "Failed to connect Garmin");
 			}

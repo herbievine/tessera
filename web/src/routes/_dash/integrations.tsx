@@ -3,6 +3,7 @@ import {
 	useIntegrations,
 	useDeleteIntegration,
 	useConnectGarmin,
+	useConnectWithings,
 } from "@/api/integrations.query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -187,6 +188,28 @@ function GarminConnectSheet() {
 	);
 }
 
+function WithingsConnectButton() {
+	const { mutate: connect, isPending } = useConnectWithings({
+		onSuccess: ({ url }) => {
+			window.location.href = url;
+		},
+		onError: (error) => {
+			alert(error.message || "Failed to connect");
+		},
+	});
+
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			onClick={() => connect()}
+			disabled={isPending}
+		>
+			{isPending ? "Connecting..." : "Connect"}
+		</Button>
+	);
+}
+
 function RouteComponent() {
 	const { integrations, isLoading } = useIntegrations();
 
@@ -315,6 +338,8 @@ function RouteComponent() {
 										</div>
 									) : integration.vendor === "garmin" ? (
 										<GarminConnectSheet />
+									) : integration.vendor === "withings" ? (
+										<WithingsConnectButton />
 									) : (
 										<X className="size-4 text-muted-foreground" />
 									)}

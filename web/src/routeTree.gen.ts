@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashRouteImport } from './routes/_dash'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WithingsCallbackRouteImport } from './routes/withings/callback'
 import { Route as DashProfileRouteImport } from './routes/_dash/profile'
 import { Route as DashIntegrationsRouteImport } from './routes/_dash/integrations'
 import { Route as DashHomeRouteImport } from './routes/_dash/home'
@@ -30,6 +31,11 @@ const AuthRoute = AuthRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WithingsCallbackRoute = WithingsCallbackRouteImport.update({
+  id: '/withings/callback',
+  path: '/withings/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashProfileRoute = DashProfileRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof DashHomeRoute
   '/integrations': typeof DashIntegrationsRoute
   '/profile': typeof DashProfileRoute
+  '/withings/callback': typeof WithingsCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/home': typeof DashHomeRoute
   '/integrations': typeof DashIntegrationsRoute
   '/profile': typeof DashProfileRoute
+  '/withings/callback': typeof WithingsCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/_dash/home': typeof DashHomeRoute
   '/_dash/integrations': typeof DashIntegrationsRoute
   '/_dash/profile': typeof DashProfileRoute
+  '/withings/callback': typeof WithingsCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/integrations'
     | '/profile'
+    | '/withings/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/integrations'
     | '/profile'
+    | '/withings/callback'
   id:
     | '__root__'
     | '/'
@@ -123,12 +134,14 @@ export interface FileRouteTypes {
     | '/_dash/home'
     | '/_dash/integrations'
     | '/_dash/profile'
+    | '/withings/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   DashRoute: typeof DashRouteWithChildren
+  WithingsCallbackRoute: typeof WithingsCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/withings/callback': {
+      id: '/withings/callback'
+      path: '/withings/callback'
+      fullPath: '/withings/callback'
+      preLoaderRoute: typeof WithingsCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dash/profile': {
@@ -231,6 +251,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   DashRoute: DashRouteWithChildren,
+  WithingsCallbackRoute: WithingsCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
