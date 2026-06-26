@@ -196,6 +196,7 @@ function TrendChart({
 								stroke={chartConfig[entity]?.color}
 								strokeWidth={2}
 								dot={false}
+								connectNulls
 							/>
 						))}
 					</LineChart>
