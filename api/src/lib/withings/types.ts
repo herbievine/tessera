@@ -10,7 +10,7 @@ export const errorSchema = z.object({
 export const oauthSchema = z.object({
 	status: z.literal(0),
 	body: z.object({
-		userid: z.number(),
+		userid: z.coerce.number(),
 		access_token: z.string(),
 		refresh_token: z.string(),
 		scope: z.string(),
