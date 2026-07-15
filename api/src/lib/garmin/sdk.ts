@@ -120,7 +120,10 @@ export class GarminClient {
 			return err("No email/password");
 		}
 
-		this.authenticate(integration.garminEmail, integration.garminPassword);
+		this.authenticate(
+			decrypt(integration.garminEmail),
+			decrypt(integration.garminPassword),
+		);
 
 		const headers = {};
 
