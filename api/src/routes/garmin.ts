@@ -82,11 +82,9 @@ export default app
 						.where(eq(schema.users.id, token.sub))
 						.limit(1);
 
-					console.log({ user });
-
 					if (user?.apiKeyHash) {
 						const y = await fetch(
-							`${Bun.env.API_URL}/api/cron/garmin?startDate=${data.startDate}`,
+							`http://localhost:3010/api/cron/garmin?startDate=${data.startDate}`,
 							{
 								method: "POST",
 								headers: { Authorization: `Bearer ${user.apiKeyHash}` },
