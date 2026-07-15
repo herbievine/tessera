@@ -142,7 +142,7 @@ def format_sleep_data(raw: dict) -> dict:
 
 def format_heart_rate_data(raw: dict) -> dict:
     """Format heart rate data into per-minute timeseries."""
-    heart_rates = raw.get("heartRateValues", [])
+    heart_rates = raw.get("heartRateValues") or []
 
     timeseries = []
     for hr in heart_rates:
