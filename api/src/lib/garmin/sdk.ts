@@ -376,89 +376,118 @@ export class GarminClient {
 			}
 		}
 
-		try {
-			const { data: hrvData, error: hrvError } = await fetcher(
-				`${this.baseUrl}/hrv?start=${dates[0]}&end=${dates[dates.length - 1]}`,
-				z.array(
-					z.object({
-						date: z.string().transform((v) => dayjs(v)),
-						lastNightAvg: z.number(),
-						lowUpper: z.number(),
-						balancedLow: z.number(),
-						balancedUpper: z.number(),
-						markerValue: z.number(),
-						readings: z.array(
-							z.object({
-								hrvValue: z.number(),
-								readingTimeGMT: z.string().transform((v) => dayjs(v)),
-								readingTimeLocal: z.string().transform((v) => dayjs(v)),
-							}),
-						),
-					}),
-				),
-				{ headers },
-			);
+		// Chunked to keep each request to the (single-threaded) garmin
+		// microservice small - requesting the full range in one call makes it
+		// do hundreds of sequential upstream Garmin calls inside one HTTP
+		// request, which blocks the server long enough for the connection
+		// to drop before it can respond.
+		const HRV_CHUNK_SIZE = 14;
 
-			for (const reading of hrvData || []) {
-				console.log("Received HRV data for", reading.date.format("YYYY-MM-DD"));
+		for (let i = 0; i < dates.length; i += HRV_CHUNK_SIZE) {
+			const chunk = dates.slice(i, i + HRV_CHUNK_SIZE);
 
-				observations.push({
-					source: "garmin",
-					type: "hrv_last_night_avg",
-					label: "HRV Last Night Average",
-					unit: "ms",
-					value: reading.lastNightAvg,
-					observedAt: dayjs(reading.date).toDate(),
-					userId: integration.userId,
-					integrationId: integration.id,
-				});
+			try {
+				const { data: hrvData, error: hrvError } = await fetcher(
+					`${this.baseUrl}/hrv?start=${chunk[0]}&end=${chunk[chunk.length - 1]}`,
+					z.array(
+						z.object({
+							date: z.string().transform((v) => dayjs(v)),
+							lastNightAvg: z.number(),
+							lowUpper: z.number(),
+							balancedLow: z.number(),
+							balancedUpper: z.number(),
+							markerValue: z.number(),
+							readings: z.array(
+								z.object({
+									hrvValue: z.number(),
+									readingTimeGMT: z.string().transform((v) => dayjs(v)),
+									readingTimeLocal: z.string().transform((v) => dayjs(v)),
+								}),
+							),
+						}),
+					),
+					{ headers },
+				);
 
-				observations.push({
-					source: "garmin",
-					type: "hrv_low_upper",
-					label: "HRV Low Upper",
-					unit: "ms",
-					value: reading.lowUpper,
-					observedAt: dayjs(reading.date).toDate(),
-					userId: integration.userId,
-					integrationId: integration.id,
-				});
+				if (hrvError) {
+					console.error(
+						"Failed to fetch HRV data for",
+						chunk[0],
+						"-",
+						chunk[chunk.length - 1],
+						hrvError,
+					);
+					continue;
+				}
 
-				observations.push({
-					source: "garmin",
-					type: "hrv_balanced_low",
-					label: "HRV Balanced Low",
-					unit: "ms",
-					value: reading.balancedLow,
-					observedAt: dayjs(reading.date).toDate(),
-					userId: integration.userId,
-					integrationId: integration.id,
-				});
+				for (const reading of hrvData || []) {
+					console.log("Received HRV data for", reading.date.format("YYYY-MM-DD"));
 
-				observations.push({
-					source: "garmin",
-					type: "hrv_balanced_upper",
-					label: "HRV Balanced Upper",
-					unit: "ms",
-					value: reading.balancedUpper,
-					observedAt: dayjs(reading.date).toDate(),
-					userId: integration.userId,
-					integrationId: integration.id,
-				});
+					observations.push({
+						source: "garmin",
+						type: "hrv_last_night_avg",
+						label: "HRV Last Night Average",
+						unit: "ms",
+						value: reading.lastNightAvg,
+						observedAt: dayjs(reading.date).toDate(),
+						userId: integration.userId,
+						integrationId: integration.id,
+					});
 
-				observations.push({
-					source: "garmin",
-					type: "hrv_marker_value",
-					label: "HRV Marker Value",
-					unit: "ms",
-					value: reading.markerValue,
-					observedAt: dayjs(reading.date).toDate(),
-					userId: integration.userId,
-					integrationId: integration.id,
-				});
+					observations.push({
+						source: "garmin",
+						type: "hrv_low_upper",
+						label: "HRV Low Upper",
+						unit: "ms",
+						value: reading.lowUpper,
+						observedAt: dayjs(reading.date).toDate(),
+						userId: integration.userId,
+						integrationId: integration.id,
+					});
+
+					observations.push({
+						source: "garmin",
+						type: "hrv_balanced_low",
+						label: "HRV Balanced Low",
+						unit: "ms",
+						value: reading.balancedLow,
+						observedAt: dayjs(reading.date).toDate(),
+						userId: integration.userId,
+						integrationId: integration.id,
+					});
+
+					observations.push({
+						source: "garmin",
+						type: "hrv_balanced_upper",
+						label: "HRV Balanced Upper",
+						unit: "ms",
+						value: reading.balancedUpper,
+						observedAt: dayjs(reading.date).toDate(),
+						userId: integration.userId,
+						integrationId: integration.id,
+					});
+
+					observations.push({
+						source: "garmin",
+						type: "hrv_marker_value",
+						label: "HRV Marker Value",
+						unit: "ms",
+						value: reading.markerValue,
+						observedAt: dayjs(reading.date).toDate(),
+						userId: integration.userId,
+						integrationId: integration.id,
+					});
+				}
+			} catch (e) {
+				console.error(
+					"Failed to fetch HRV data for",
+					chunk[0],
+					"-",
+					chunk[chunk.length - 1],
+					":",
+					e,
+				);
 			}
-		} catch (e) {
-			console.error("Failed to fetch HRV data:", e);
 		}
 
 		if (observations.length === 0) {
