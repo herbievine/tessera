@@ -45,13 +45,28 @@ const hrvChartConfig = {
 	},
 } satisfies ChartConfig;
 
-function HRVChart() {
-	const { trends: hrvAvg, isLoading: loading1 } =
-		useTrends("hrv_last_night_avg");
-	const { trends: balancedLow, isLoading: loading2 } =
-		useTrends("hrv_balanced_low");
-	const { trends: balancedUpper, isLoading: loading3 } =
-		useTrends("hrv_balanced_upper");
+function HRVChart({
+	startDate,
+	endDate,
+}: {
+	startDate?: string;
+	endDate?: string;
+}) {
+	const { trends: hrvAvg, isLoading: loading1 } = useTrends(
+		"hrv_last_night_avg",
+		startDate,
+		endDate,
+	);
+	const { trends: balancedLow, isLoading: loading2 } = useTrends(
+		"hrv_balanced_low",
+		startDate,
+		endDate,
+	);
+	const { trends: balancedUpper, isLoading: loading3 } = useTrends(
+		"hrv_balanced_upper",
+		startDate,
+		endDate,
+	);
 
 	const isLoading = loading1 || loading2 || loading3
 
@@ -154,10 +169,19 @@ function HRVChart() {
 							tickFormatter={(v) => `${v} ms`}
 						/>
 						<XAxis
-							dataKey="date"
+							dataKey="sortTime"
+							type="number"
+							domain={["dataMin", "dataMax"]}
+							scale="time"
 							tickLine={false}
 							axisLine={false}
 							tickMargin={8}
+							tickFormatter={(value) =>
+								new Date(value).toLocaleDateString("en-US", {
+									month: "short",
+									day: "numeric",
+								})
+							}
 						/>
 						<ChartTooltip
 							cursor={false}
@@ -192,27 +216,31 @@ function HRVChart() {
 }
 
 function RouteComponent() {
-	const { trends: weightTrends, isLoading: weightLoading } =
-		useTrends("weight");
+	const params = new URLSearchParams(
+		typeof window !== "undefined" ? window.location.search : "",
+	);
+	const startDate = params.get("startDate") || undefined;
+	const endDate = params.get("endDate") || undefined;
+
+	const { trends: weightTrends, isLoading: weightLoading } = useTrends(
+		"weight",
+		startDate,
+		endDate,
+	);
 
 	const chartData = weightTrends
 		?.map((t: TrendPoint) => ({
-			date: new Date(t.date).toLocaleDateString("en-US", {
-				month: "short",
-				day: "numeric",
-			}),
+			sortTime: new Date(t.date).getTime(),
 			weight: t.value,
 		}))
 		.sort(
-			(
-				a: { date: string; weight: number },
-				b: { date: string; weight: number },
-			) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+			(a: { sortTime: number }, b: { sortTime: number }) =>
+				a.sortTime - b.sortTime,
 		);
 
 	return (
 		<div className="space-y-6">
-			<HRVChart />
+			<HRVChart startDate={startDate} endDate={endDate} />
 			<Card>
 				<CardHeader>
 					<CardTitle>Weight Trend</CardTitle>
@@ -244,10 +272,19 @@ function RouteComponent() {
 									tickFormatter={(value) => `${value} kg`}
 								/>
 								<XAxis
-									dataKey="date"
+									dataKey="sortTime"
+									type="number"
+									domain={["dataMin", "dataMax"]}
+									scale="time"
 									tickLine={false}
 									axisLine={false}
 									tickMargin={8}
+									tickFormatter={(value) =>
+										new Date(value).toLocaleDateString("en-US", {
+											month: "short",
+											day: "numeric",
+										})
+									}
 								/>
 								<ChartTooltip
 									cursor={false}

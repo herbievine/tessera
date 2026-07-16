@@ -81,6 +81,13 @@ function mergeChartData(
 	return mergedData.sort((a, b) => a._sortTime - b._sortTime);
 }
 
+function formatAxisTick(sortTime: number, granular: boolean) {
+	const date = new Date(sortTime);
+	return granular
+		? date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+		: date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function TrendChart({
 	title,
 	description,
@@ -119,6 +126,13 @@ function TrendChart({
 			</span>
 		);
 	};
+
+	// A chart is either all intraday points (many per day, e.g. heart_rate) or
+	// all daily aggregates - never mixed - so one gap check over the sorted
+	// timestamps is enough to tell which kind of tick label to render.
+	const granular = data.some(
+		(d, i) => i > 0 && d._sortTime - data[i - 1]._sortTime < 20 * 60 * 60 * 1000,
+	);
 
 	if (isLoading) {
 		return (
@@ -172,10 +186,14 @@ function TrendChart({
 							domain={["auto", "auto"]}
 						/>
 						<XAxis
-							dataKey="date"
+							dataKey="_sortTime"
+							type="number"
+							domain={["dataMin", "dataMax"]}
+							scale="time"
 							tickLine={false}
 							axisLine={false}
 							tickMargin={8}
+							tickFormatter={(value) => formatAxisTick(value, granular)}
 						/>
 						<ChartTooltip
 							cursor={false}
