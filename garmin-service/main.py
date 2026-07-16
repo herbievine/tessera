@@ -121,6 +121,13 @@ def format_sleep_data(raw: dict) -> dict:
     def score(key: str, field: str):
         return (scores.get(key) or {}).get(field)
 
+    # Garmin also omits the duration fields themselves (not just scores) for
+    # nights it hasn't finished processing - dto.get(key, 0) only falls back
+    # on a missing key, not an explicit null, so this needs its own guard.
+    def hours(key: str):
+        seconds = dto.get(key)
+        return None if seconds is None else round(seconds / 3600, 1)
+
     return {
         "date": dto.get("calendarDate"),
         "sleep_score": score("overall", "value"),
@@ -132,15 +139,15 @@ def format_sleep_data(raw: dict) -> dict:
         "rem_pct_score": score("remPercentage", "value"),
         "rem_pct_quality": score("remPercentage", "qualifierKey"),
         "total_seconds": dto.get("sleepTimeSeconds"),
-        "total_hours": round(dto.get("sleepTimeSeconds", 0) / 3600, 1),
+        "total_hours": hours("sleepTimeSeconds"),
         "deep_seconds": dto.get("deepSleepSeconds"),
-        "deep_hours": round(dto.get("deepSleepSeconds", 0) / 3600, 1),
+        "deep_hours": hours("deepSleepSeconds"),
         "light_seconds": dto.get("lightSleepSeconds"),
-        "light_hours": round(dto.get("lightSleepSeconds", 0) / 3600, 1),
+        "light_hours": hours("lightSleepSeconds"),
         "rem_seconds": dto.get("remSleepSeconds"),
-        "rem_hours": round(dto.get("remSleepSeconds", 0) / 3600, 1),
+        "rem_hours": hours("remSleepSeconds"),
         "awake_seconds": dto.get("awakeSleepSeconds"),
-        "awake_hours": round(dto.get("awakeSleepSeconds", 0) / 3600, 1),
+        "awake_hours": hours("awakeSleepSeconds"),
         # "restless_seconds": dto.get("restlessSeconds"),
         # "restless_percentage": dto.get("restlessPeriodsPercentage"),
         "awake_count": dto.get("awakeCount"),

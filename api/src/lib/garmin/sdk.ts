@@ -175,17 +175,19 @@ export class GarminClient {
 						rem_pct_quality: z
 							.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"])
 							.nullable(),
-						total_seconds: z.number(),
-						total_hours: z.number(),
-						deep_seconds: z.number(),
-						deep_hours: z.number(),
-						light_seconds: z.number(),
-						light_hours: z.number(),
-						rem_seconds: z.number(),
-						rem_hours: z.number(),
-						awake_seconds: z.number(),
-						awake_hours: z.number(),
-						awake_count: z.number(),
+						// Garmin also omits the durations themselves (not just the
+						// scores) for nights it hasn't finished processing yet.
+						total_seconds: z.number().nullable(),
+						total_hours: z.number().nullable(),
+						deep_seconds: z.number().nullable(),
+						deep_hours: z.number().nullable(),
+						light_seconds: z.number().nullable(),
+						light_hours: z.number().nullable(),
+						rem_seconds: z.number().nullable(),
+						rem_hours: z.number().nullable(),
+						awake_seconds: z.number().nullable(),
+						awake_hours: z.number().nullable(),
+						awake_count: z.number().nullable(),
 					}),
 					{
 						headers,
@@ -216,60 +218,70 @@ export class GarminClient {
 						});
 					}
 
-					observations.push({
-						source: "garmin",
-						type: "sleep_total_hours",
-						label: "Total Sleep Hours",
-						unit: "hours",
-						value: sleepData.total_hours,
-						observedAt: sleepData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (sleepData.total_hours !== null) {
+						observations.push({
+							source: "garmin",
+							type: "sleep_total_hours",
+							label: "Total Sleep Hours",
+							unit: "hours",
+							value: sleepData.total_hours,
+							observedAt: sleepData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "sleep_deep_hours",
-						label: "Deep Sleep Hours",
-						unit: "hours",
-						value: sleepData.deep_hours,
-						observedAt: sleepData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (sleepData.deep_hours !== null) {
+						observations.push({
+							source: "garmin",
+							type: "sleep_deep_hours",
+							label: "Deep Sleep Hours",
+							unit: "hours",
+							value: sleepData.deep_hours,
+							observedAt: sleepData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "sleep_light_hours",
-						label: "Light Sleep Hours",
-						unit: "hours",
-						value: sleepData.light_hours,
-						observedAt: sleepData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (sleepData.light_hours !== null) {
+						observations.push({
+							source: "garmin",
+							type: "sleep_light_hours",
+							label: "Light Sleep Hours",
+							unit: "hours",
+							value: sleepData.light_hours,
+							observedAt: sleepData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "sleep_rem_hours",
-						label: "REM Sleep Hours",
-						unit: "hours",
-						value: sleepData.rem_hours,
-						observedAt: sleepData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (sleepData.rem_hours !== null) {
+						observations.push({
+							source: "garmin",
+							type: "sleep_rem_hours",
+							label: "REM Sleep Hours",
+							unit: "hours",
+							value: sleepData.rem_hours,
+							observedAt: sleepData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "sleep_awake_hours",
-						label: "Awake Hours",
-						unit: "hours",
-						value: sleepData.awake_hours,
-						observedAt: sleepData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (sleepData.awake_hours !== null) {
+						observations.push({
+							source: "garmin",
+							type: "sleep_awake_hours",
+							label: "Awake Hours",
+							unit: "hours",
+							value: sleepData.awake_hours,
+							observedAt: sleepData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 				}
 			} catch (e) {
 				console.error("Failed to fetch sleep data:", e);
@@ -281,9 +293,11 @@ export class GarminClient {
 					`${this.baseUrl}/hr?date=${date}`,
 					z.object({
 						date: z.string().transform((v) => dayjs(v)),
-						resting_hr: z.number(),
-						max_hr: z.number(),
-						min_hr: z.number(),
+						// Garmin returns these as null for dates without a finished
+						// HR summary yet (e.g. very recent dates).
+						resting_hr: z.number().nullable(),
+						max_hr: z.number().nullable(),
+						min_hr: z.number().nullable(),
 						avg_hr: z.number().nullish(),
 						timeseries: z.array(
 							z.object({
@@ -305,36 +319,42 @@ export class GarminClient {
 				if (hrData) {
 					console.log("Received HR data for", hrData.date.format("YYYY-MM-DD"));
 
-					observations.push({
-						source: "garmin",
-						type: "resting_heart_rate",
-						label: "Resting Heart Rate",
-						unit: "bpm",
-						value: hrData.resting_hr,
-						observedAt: hrData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
-					observations.push({
-						source: "garmin",
-						type: "heart_rate_max",
-						label: "Max Heart Rate",
-						unit: "bpm",
-						value: hrData.max_hr,
-						observedAt: hrData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
-					observations.push({
-						source: "garmin",
-						type: "heart_rate_min",
-						label: "Min Heart Rate",
-						unit: "bpm",
-						value: hrData.min_hr,
-						observedAt: hrData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (hrData.resting_hr !== null) {
+						observations.push({
+							source: "garmin",
+							type: "resting_heart_rate",
+							label: "Resting Heart Rate",
+							unit: "bpm",
+							value: hrData.resting_hr,
+							observedAt: hrData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
+					if (hrData.max_hr !== null) {
+						observations.push({
+							source: "garmin",
+							type: "heart_rate_max",
+							label: "Max Heart Rate",
+							unit: "bpm",
+							value: hrData.max_hr,
+							observedAt: hrData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
+					if (hrData.min_hr !== null) {
+						observations.push({
+							source: "garmin",
+							type: "heart_rate_min",
+							label: "Min Heart Rate",
+							unit: "bpm",
+							value: hrData.min_hr,
+							observedAt: hrData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
 					if (hrData.avg_hr !== null && hrData.avg_hr !== undefined) {
 						observations.push({
@@ -347,22 +367,6 @@ export class GarminClient {
 							userId: integration.userId,
 							integrationId: integration.id,
 						});
-					}
-
-					for (const reading of hrData.timeseries) {
-						// Skip readings with null bpm values to avoid NOT NULL constraint violation
-						if (reading.bpm !== null && reading.bpm !== undefined) {
-							observations.push({
-								source: "garmin",
-								type: "heart_rate",
-								label: "Heart Rate",
-								unit: "bpm",
-								value: reading.bpm,
-								observedAt: dayjs(reading.time).toDate(),
-								userId: integration.userId,
-								integrationId: integration.id,
-							});
-						}
 					}
 
 					for (const reading of hrData.timeseries) {
