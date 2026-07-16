@@ -31,8 +31,10 @@ export const measureSchema = z.object({
 				created: z.number(),
 				modified: z.number(),
 				category: z.number(),
-				deviceid: z.string().optional(),
-				hash_deviceid: z.string().optional(),
+				// Withings sends these as an explicit null on older/manual entries,
+				// not just omitting the key, so .optional() alone rejects them.
+				deviceid: z.string().nullish(),
+				hash_deviceid: z.string().nullish(),
 				measures: z
 					.object({
 						value: z.number(),
@@ -43,7 +45,7 @@ export const measureSchema = z.object({
 						position: z.number().optional(),
 					})
 					.array(),
-				modelid: z.number().optional(),
+				modelid: z.number().nullish(),
 				model: z.string().nullable(),
 				comment: z.string().nullable(),
 				timezone: z.string().optional(),
