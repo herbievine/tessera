@@ -12,7 +12,13 @@ const config = defineConfig(({ mode }) => ({
 		mode !== "production" && devtools(),
 		tsconfigPaths({ projects: ["./tsconfig.json"] }),
 		tailwindcss(),
-		tanstackRouter({ target: "react", autoCodeSplitting: true }),
+		// autoCodeSplitting: true split route internals (e.g. Outlet/useRouter)
+		// across multiple chunks in a way that only broke under real network
+		// latency (never reproduced on localhost) - React's hook dispatcher
+		// ended up null when a route chunk's copy of the router context
+		// executed out of sync with the main bundle, throwing "Invalid hook
+		// call" (#321) on nearly every page load/navigation in production.
+		tanstackRouter({ target: "react", autoCodeSplitting: false }),
 		viteReact(),
 		{
 			// Cloudflare's Rocket Loader rewrites <script type="module"> tags to
