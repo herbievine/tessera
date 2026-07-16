@@ -14,6 +14,19 @@ const config = defineConfig(({ mode }) => ({
 		tailwindcss(),
 		tanstackRouter({ target: "react", autoCodeSplitting: true }),
 		viteReact(),
+		{
+			// Cloudflare's Rocket Loader rewrites <script type="module"> tags to
+			// defer/reorder their execution, which breaks the ESM module graph
+			// (React ends up with a null hook dispatcher). data-cfasync="false"
+			// is Rocket Loader's documented opt-out for specific scripts.
+			name: "cfasync-false-on-module-scripts",
+			transformIndexHtml(html: string) {
+				return html.replace(
+					/<script type="module"/g,
+					'<script type="module" data-cfasync="false"',
+				);
+			},
+		},
 		VitePWA({
 			registerType: "autoUpdate",
 			includeAssets: ["favicon.ico", "logo192.png", "logo512.png"],
