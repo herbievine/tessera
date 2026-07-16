@@ -27,7 +27,12 @@ export default app
 
 		const [userId, initiatedAt] = state.split(":");
 
-		if (!userId || !initiatedAt || +initiatedAt + 30000 < Date.now()) {
+		// Withings can require 2FA before redirecting back, which routinely
+		// takes longer than a few seconds - 30s was nowhere near enough and
+		// failed real logins that were otherwise successful.
+		const STATE_TTL_MS = 10 * 60 * 1000;
+
+		if (!userId || !initiatedAt || +initiatedAt + STATE_TTL_MS < Date.now()) {
 			returnSearchParams.append("error", "invalid_state");
 			returnSearchParams.append("success", "false");
 
