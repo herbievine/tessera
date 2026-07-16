@@ -565,6 +565,33 @@ const app = new Hono().get("/:entity", async (c) => {
 			.from(schema.macrofactorDaily)
 			.where(mfDateFilter.length > 0 ? and(...mfDateFilter) : undefined);
 
+		// "weight" is tracked by both MacroFactor (macrofactor_daily) and
+		// Withings (observations) - fall back to the observations row for any
+		// date MacroFactor doesn't have one, rather than reporting null when
+		// the other integration actually has the data.
+		const obsConditions: any[] = [eq(schema.observations.type, entity as any)];
+		if (startDate) {
+			obsConditions.push(
+				gte(schema.observations.observedAt, new Date(startDate)),
+			);
+		}
+		if (endDate) {
+			obsConditions.push(
+				lte(
+					schema.observations.observedAt,
+					new Date(endDate + "T23:59:59.999Z"),
+				),
+			);
+		}
+
+		const obsData = await db
+			.select({
+				date: schema.observations.observedAt,
+				value: schema.observations.value,
+			})
+			.from(schema.observations)
+			.where(and(...obsConditions));
+
 		// Generate all dates in range
 		const allDates: string[] = [];
 		const start = startDate ? dayjs(startDate) : dayjs().subtract(30, "day");
@@ -580,12 +607,15 @@ const app = new Hono().get("/:entity", async (c) => {
 			const dayData = data.find(
 				(d: any) => dayjs(d.date).format("YYYY-MM-DD") === dateStr,
 			);
+			const obsDayData = obsData.find(
+				(d: any) => dayjs(d.date).format("YYYY-MM-DD") === dateStr,
+			);
 			return {
 				date: dateStr,
 				label: entity,
 				unit: macrofactorEntityMap[entity as keyof typeof macrofactorEntityMap]
 					.unit,
-				value: dayData?.value ?? null,
+				value: dayData?.value ?? obsDayData?.value ?? null,
 			};
 		});
 
