@@ -113,16 +113,24 @@ def format_sleep_data(raw: dict) -> dict:
 
     # levels = dto.get("sleepLevels", {})
 
+    # Garmin omits sleepScores entirely for nights it hasn't finished scoring
+    # yet (e.g. very recent dates), so every nested lookup here has to
+    # tolerate a missing scores dict, not just missing individual scores.
+    scores = dto.get("sleepScores") or {}
+
+    def score(key: str, field: str):
+        return (scores.get(key) or {}).get(field)
+
     return {
         "date": dto.get("calendarDate"),
-        "sleep_score": dto.get("sleepScores").get("overall").get("value"),
-        "quality": dto.get("sleepScores").get("overall").get("qualifierKey"),
-        "light_pct_score": dto.get("sleepScores").get("lightPercentage").get("value"),
-        "light_pct_quality": dto.get("sleepScores").get("lightPercentage").get("qualifierKey"),
-        "deep_pct_score": dto.get("sleepScores").get("deepPercentage").get("value"),
-        "deep_pct_quality": dto.get("sleepScores").get("deepPercentage").get("qualifierKey"),
-        "rem_pct_score": dto.get("sleepScores").get("remPercentage").get("value"),
-        "rem_pct_quality": dto.get("sleepScores").get("remPercentage").get("qualifierKey"),
+        "sleep_score": score("overall", "value"),
+        "quality": score("overall", "qualifierKey"),
+        "light_pct_score": score("lightPercentage", "value"),
+        "light_pct_quality": score("lightPercentage", "qualifierKey"),
+        "deep_pct_score": score("deepPercentage", "value"),
+        "deep_pct_quality": score("deepPercentage", "qualifierKey"),
+        "rem_pct_score": score("remPercentage", "value"),
+        "rem_pct_quality": score("remPercentage", "qualifierKey"),
         "total_seconds": dto.get("sleepTimeSeconds"),
         "total_hours": round(dto.get("sleepTimeSeconds", 0) / 3600, 1),
         "deep_seconds": dto.get("deepSleepSeconds"),
@@ -170,19 +178,20 @@ def format_hrv_data(raw: list[dict]) -> list[dict] | None:
     for hrv in raw:
         data = hrv.get("data")
         if data is None:
-            return None
+            # No HRV recorded for this day at all - skip it, not the rest.
+            continue
 
-        summary = data.get("hrvSummary")
-        readings = data.get("hrvReadings")
+        summary = data.get("hrvSummary") or {}
+        baseline = summary.get("baseline") or {}
+        readings = data.get("hrvReadings") or []
         timeseries.append({
             "date": summary.get("calendarDate"),
             "lastNightAvg": summary.get("lastNightAvg"),
-            "lowUpper": summary.get("baseline").get("lowUpper"),
-            "balancedLow": summary.get("baseline").get("balancedLow"),
-            "balancedUpper": summary.get("baseline").get("balancedUpper"),
-            "markerValue": summary.get("baseline").get("markerValue"),
+            "lowUpper": baseline.get("lowUpper"),
+            "balancedLow": baseline.get("balancedLow"),
+            "balancedUpper": baseline.get("balancedUpper"),
+            "markerValue": baseline.get("markerValue"),
             "readings": readings,
-            "s": hrv,
         })
 
     return timeseries

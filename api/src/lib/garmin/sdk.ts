@@ -159,14 +159,22 @@ export class GarminClient {
 					`${this.baseUrl}/sleep?date=${date}`,
 					z.object({
 						date: z.string().transform((v) => dayjs(v)),
-						sleep_score: z.number(),
-						quality: z.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"]),
-						light_pct_score: z.number(),
-						light_pct_quality: z.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"]),
-						deep_pct_score: z.number(),
-						deep_pct_quality: z.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"]),
-						rem_pct_score: z.number(),
-						rem_pct_quality: z.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"]),
+						// Garmin hasn't finished scoring very recent nights yet, so
+						// these come back null rather than being omitted.
+						sleep_score: z.number().nullable(),
+						quality: z.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"]).nullable(),
+						light_pct_score: z.number().nullable(),
+						light_pct_quality: z
+							.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"])
+							.nullable(),
+						deep_pct_score: z.number().nullable(),
+						deep_pct_quality: z
+							.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"])
+							.nullable(),
+						rem_pct_score: z.number().nullable(),
+						rem_pct_quality: z
+							.enum(["EXCELLENT", "GOOD", "FAIR", "POOR"])
+							.nullable(),
 						total_seconds: z.number(),
 						total_hours: z.number(),
 						deep_seconds: z.number(),
@@ -195,16 +203,18 @@ export class GarminClient {
 						sleepData.date.format("YYYY-MM-DD"),
 					);
 
-					observations.push({
-						source: "garmin",
-						type: "sleep_score",
-						label: "Sleep Score",
-						unit: "score",
-						value: sleepData.sleep_score,
-						observedAt: sleepData.date.toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (sleepData.sleep_score !== null) {
+						observations.push({
+							source: "garmin",
+							type: "sleep_score",
+							label: "Sleep Score",
+							unit: "score",
+							value: sleepData.sleep_score,
+							observedAt: sleepData.date.toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
 					observations.push({
 						source: "garmin",
@@ -392,11 +402,14 @@ export class GarminClient {
 					z.array(
 						z.object({
 							date: z.string().transform((v) => dayjs(v)),
-							lastNightAvg: z.number(),
-							lowUpper: z.number(),
-							balancedLow: z.number(),
-							balancedUpper: z.number(),
-							markerValue: z.number(),
+							// Garmin's HRV baseline isn't established for every day
+							// (e.g. very recent dates, or accounts without enough
+							// history yet), so these come back null individually.
+							lastNightAvg: z.number().nullable(),
+							lowUpper: z.number().nullable(),
+							balancedLow: z.number().nullable(),
+							balancedUpper: z.number().nullable(),
+							markerValue: z.number().nullable(),
 							readings: z.array(
 								z.object({
 									hrvValue: z.number(),
@@ -423,60 +436,70 @@ export class GarminClient {
 				for (const reading of hrvData || []) {
 					console.log("Received HRV data for", reading.date.format("YYYY-MM-DD"));
 
-					observations.push({
-						source: "garmin",
-						type: "hrv_last_night_avg",
-						label: "HRV Last Night Average",
-						unit: "ms",
-						value: reading.lastNightAvg,
-						observedAt: dayjs(reading.date).toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (reading.lastNightAvg !== null) {
+						observations.push({
+							source: "garmin",
+							type: "hrv_last_night_avg",
+							label: "HRV Last Night Average",
+							unit: "ms",
+							value: reading.lastNightAvg,
+							observedAt: dayjs(reading.date).toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "hrv_low_upper",
-						label: "HRV Low Upper",
-						unit: "ms",
-						value: reading.lowUpper,
-						observedAt: dayjs(reading.date).toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (reading.lowUpper !== null) {
+						observations.push({
+							source: "garmin",
+							type: "hrv_low_upper",
+							label: "HRV Low Upper",
+							unit: "ms",
+							value: reading.lowUpper,
+							observedAt: dayjs(reading.date).toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "hrv_balanced_low",
-						label: "HRV Balanced Low",
-						unit: "ms",
-						value: reading.balancedLow,
-						observedAt: dayjs(reading.date).toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (reading.balancedLow !== null) {
+						observations.push({
+							source: "garmin",
+							type: "hrv_balanced_low",
+							label: "HRV Balanced Low",
+							unit: "ms",
+							value: reading.balancedLow,
+							observedAt: dayjs(reading.date).toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "hrv_balanced_upper",
-						label: "HRV Balanced Upper",
-						unit: "ms",
-						value: reading.balancedUpper,
-						observedAt: dayjs(reading.date).toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (reading.balancedUpper !== null) {
+						observations.push({
+							source: "garmin",
+							type: "hrv_balanced_upper",
+							label: "HRV Balanced Upper",
+							unit: "ms",
+							value: reading.balancedUpper,
+							observedAt: dayjs(reading.date).toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 
-					observations.push({
-						source: "garmin",
-						type: "hrv_marker_value",
-						label: "HRV Marker Value",
-						unit: "ms",
-						value: reading.markerValue,
-						observedAt: dayjs(reading.date).toDate(),
-						userId: integration.userId,
-						integrationId: integration.id,
-					});
+					if (reading.markerValue !== null) {
+						observations.push({
+							source: "garmin",
+							type: "hrv_marker_value",
+							label: "HRV Marker Value",
+							unit: "ms",
+							value: reading.markerValue,
+							observedAt: dayjs(reading.date).toDate(),
+							userId: integration.userId,
+							integrationId: integration.id,
+						});
+					}
 				}
 			} catch (e) {
 				console.error(
