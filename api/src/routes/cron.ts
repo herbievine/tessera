@@ -9,6 +9,7 @@ import { WithingsClient } from "../lib/withings/sdk";
 import { garminTypes, garminKeys } from "../lib/garmin/constants";
 import { decrypt } from "../utils/crypto";
 import { GarminClient } from "../lib/garmin/sdk";
+import { internalApiUrl } from "../config";
 
 const app = new Hono();
 
@@ -43,7 +44,7 @@ export default app
 			// Sync Withings
 			try {
 				const withingsRes = await fetch(
-					"http://localhost:3010/api/cron/withings",
+					`${internalApiUrl}/api/cron/withings`,
 					{
 						method: "POST",
 						headers: { Authorization: `Bearer ${user.apiKeyHash}` },
@@ -67,7 +68,7 @@ export default app
 
 			// Sync Garmin
 			try {
-				const garminRes = await fetch("http://localhost:3010/api/cron/garmin", {
+				const garminRes = await fetch(`${internalApiUrl}/api/cron/garmin`, {
 					method: "POST",
 					headers: { Authorization: `Bearer ${user.apiKeyHash}` },
 				});
@@ -166,6 +167,15 @@ export default app
 			return c.json({ error: data.error }, 500);
 		}
 
-		return c.json({ imported: data.value });
+		// Activities are keyed and range-resolved independently of the
+		// observation import, so a failure here shouldn't discard the
+		// measurements that already landed.
+		const activities = await client.syncActivities(integration);
+
+		return c.json({
+			imported: data.value,
+			activities: activities.isErr() ? 0 : activities.value,
+			activitiesError: activities.isErr() ? activities.error : undefined,
+		});
 		// }
 	});

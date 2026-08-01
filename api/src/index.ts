@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { port } from "./config";
 import { createTransport } from "./mcp/server";
 import authRoute from "./routes/auth";
 import cronRoute from "./routes/cron";
@@ -7,6 +8,7 @@ import importRoute from "./routes/import";
 import trendsRoute from "./routes/trends";
 import withingsRoute from "./routes/withings";
 import garminRoute from "./routes/garmin";
+import activitiesRoute from "./routes/activities";
 import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
 import { jwt } from "hono/jwt";
@@ -32,18 +34,20 @@ const routes = app
 	.use("/integrations/*", jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }))
 	.use("/trends/*", jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }))
 	.use("/garmin/*", jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }))
+	.use("/activities/*", jwt({ secret: Bun.env.JWT_SECRET!, alg: "HS256" }))
 	.route("/auth", authRoute)
 	.route("/cron", cronRoute)
 	.route("/integrations", integrationsRoute)
 	.route("/import", importRoute)
 	.route("/trends", trendsRoute)
 	.route("/withings", withingsRoute)
-	.route("/garmin", garminRoute);
+	.route("/garmin", garminRoute)
+	.route("/activities", activitiesRoute);
 
 export type AppType = typeof routes;
 
 Bun.serve({
-	port: 3010,
+	port,
 	idleTimeout: 0,
 	routes: {
 		"/api/*": (req) => app.fetch(req),

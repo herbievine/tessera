@@ -73,6 +73,86 @@ export const observations = sqliteTable(
 	],
 );
 
+// Activities don't fit the observations table: an observation is one scalar
+// at one instant, whereas an activity is a record with a dozen correlated
+// metrics. Summaries live here; the heavy per-point blobs live in
+// activityDetails so listing activities never has to read them.
+export const activities = sqliteTable(
+	"activities",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => id()),
+
+		garminActivityId: text("garmin_activity_id").notNull(),
+		name: text("name"),
+		typeKey: text("type_key").notNull(),
+
+		// Garmin reports both; local is what the user ran "at 7:13 AM", GMT is
+		// what we sort and range-query on.
+		startTimeLocal: integer("start_time_local", { mode: "timestamp" }).notNull(),
+		startTimeGmt: integer("start_time_gmt", { mode: "timestamp" }).notNull(),
+
+		distanceM: real("distance_m"),
+		durationS: real("duration_s"),
+		movingDurationS: real("moving_duration_s"),
+		elapsedDurationS: real("elapsed_duration_s"),
+		elevationGainM: real("elevation_gain_m"),
+		elevationLossM: real("elevation_loss_m"),
+		averageSpeedMps: real("average_speed_mps"),
+		maxSpeedMps: real("max_speed_mps"),
+		calories: real("calories"),
+		averageHr: real("average_hr"),
+		maxHr: real("max_hr"),
+		averageCadence: real("average_cadence"),
+		maxCadence: real("max_cadence"),
+		steps: integer("steps"),
+		avgStrideLengthCm: real("avg_stride_length_cm"),
+		vo2Max: real("vo2_max"),
+		aerobicTrainingEffect: real("aerobic_training_effect"),
+		anaerobicTrainingEffect: real("anaerobic_training_effect"),
+		trainingEffectLabel: text("training_effect_label"),
+		locationName: text("location_name"),
+		startLatitude: real("start_latitude"),
+		startLongitude: real("start_longitude"),
+		hasPolyline: integer("has_polyline", { mode: "boolean" }),
+		lapCount: integer("lap_count"),
+
+		userId: text("user_id").notNull(),
+		integrationId: text("integration_id").notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+			() => new Date(),
+		),
+	},
+	(t) => [
+		index("idx_activities_user_start").on(t.userId, t.startTimeGmt),
+		index("idx_activities_user_type_start").on(
+			t.userId,
+			t.typeKey,
+			t.startTimeGmt,
+		),
+		unique().on(t.userId, t.garminActivityId),
+	],
+);
+
+// Fetched lazily on first view rather than during backfill: each row costs
+// three upstream Garmin calls, which across a full history would be thousands
+// of sequential requests through a single-threaded service.
+export const activityDetails = sqliteTable("activity_details", {
+	activityId: text("activity_id").primaryKey(),
+
+	pointCount: integer("point_count"),
+	route: text("route", { mode: "json" }),
+	series: text("series", { mode: "json" }),
+	splits: text("splits", { mode: "json" }),
+	weather: text("weather", { mode: "json" }),
+	hrZones: text("hr_zones", { mode: "json" }),
+
+	fetchedAt: integer("fetched_at", { mode: "timestamp" }).$defaultFn(
+		() => new Date(),
+	),
+});
+
 export const macrofactorDaily = sqliteTable(
 	"macrofactor_daily",
 	{

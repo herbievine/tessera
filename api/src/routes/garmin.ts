@@ -9,6 +9,7 @@ import { zValidator } from "@hono/zod-validator";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { fetcher } from "../utils/fetcher";
+import { internalApiUrl } from "../config";
 
 dayjs.extend(utc);
 
@@ -84,7 +85,7 @@ export default app
 
 					if (user?.apiKeyHash) {
 						const y = await fetch(
-							`http://localhost:3010/api/cron/garmin?startDate=${data.startDate}`,
+							`${internalApiUrl}/api/cron/garmin?startDate=${data.startDate}`,
 							{
 								method: "POST",
 								headers: { Authorization: `Bearer ${user.apiKeyHash}` },

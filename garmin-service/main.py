@@ -204,6 +204,123 @@ def format_hrv_data(raw: list[dict]) -> list[dict] | None:
     return timeseries
 
 
+def format_activity_summary(raw: dict) -> dict:
+    """Flatten a Garmin activity summary into the fields we store.
+
+    Garmin nests type/event under objects and omits most metric fields
+    entirely for activities that don't have them (no HR strap, indoor runs
+    with no GPS), so every lookup here tolerates a missing key.
+    """
+    activity_type = raw.get("activityType") or {}
+
+    return {
+        "activity_id": raw.get("activityId"),
+        "name": raw.get("activityName"),
+        "type_key": activity_type.get("typeKey"),
+        "start_time_local": raw.get("startTimeLocal"),
+        "start_time_gmt": raw.get("startTimeGMT"),
+        "distance_m": raw.get("distance"),
+        "duration_s": raw.get("duration"),
+        "moving_duration_s": raw.get("movingDuration"),
+        "elapsed_duration_s": raw.get("elapsedDuration"),
+        "elevation_gain_m": raw.get("elevationGain"),
+        "elevation_loss_m": raw.get("elevationLoss"),
+        "average_speed_mps": raw.get("averageSpeed"),
+        "max_speed_mps": raw.get("maxSpeed"),
+        "calories": raw.get("calories"),
+        "average_hr": raw.get("averageHR"),
+        "max_hr": raw.get("maxHR"),
+        "average_cadence": raw.get("averageRunningCadenceInStepsPerMinute"),
+        "max_cadence": raw.get("maxRunningCadenceInStepsPerMinute"),
+        "steps": raw.get("steps"),
+        "avg_stride_length_cm": raw.get("avgStrideLength"),
+        "vo2_max": raw.get("vO2MaxValue"),
+        "aerobic_training_effect": raw.get("aerobicTrainingEffect"),
+        "anaerobic_training_effect": raw.get("anaerobicTrainingEffect"),
+        "training_effect_label": raw.get("trainingEffectLabel"),
+        "location_name": raw.get("locationName"),
+        "start_latitude": raw.get("startLatitude"),
+        "start_longitude": raw.get("startLongitude"),
+        "has_polyline": raw.get("hasPolyline"),
+        "lap_count": raw.get("lapCount"),
+    }
+
+
+def format_activity_weather(raw: dict | None) -> dict | None:
+    """Normalise activity weather to metric.
+
+    Garmin's weather endpoint reports Fahrenheit and mph regardless of the
+    account's display units, and sends no unit field to disambiguate, so the
+    conversion has to be unconditional.
+    """
+    if not raw:
+        return None
+
+    def to_celsius(f):
+        return None if f is None else round((f - 32) * 5 / 9, 1)
+
+    def to_kph(mph):
+        return None if mph is None else round(mph * 1.609344, 1)
+
+    weather_type = raw.get("weatherTypeDTO") or {}
+
+    return {
+        "temp_c": to_celsius(raw.get("temp")),
+        "apparent_temp_c": to_celsius(raw.get("apparentTemp")),
+        "dew_point_c": to_celsius(raw.get("dewPoint")),
+        "relative_humidity": raw.get("relativeHumidity"),
+        "wind_speed_kph": to_kph(raw.get("windSpeed")),
+        "wind_direction_compass": raw.get("windDirectionCompassPoint"),
+        "description": weather_type.get("desc"),
+    }
+
+
+def format_activity_details(raw: dict) -> dict:
+    """Extract the route and per-point metric series from activity details.
+
+    Garmin returns metrics as bare positional arrays plus a separate
+    descriptor list mapping each index to a key, so this resolves the
+    indices we care about rather than shipping the whole opaque payload.
+    """
+    descriptors = raw.get("metricDescriptors") or []
+    index_by_key = {
+        d.get("key"): d.get("metricsIndex")
+        for d in descriptors
+        if d.get("key") is not None and d.get("metricsIndex") is not None
+    }
+
+    wanted = {
+        "timestamp": "directTimestamp",
+        "distance_m": "sumDistance",
+        "elevation_m": "directElevation",
+        "speed_mps": "directSpeed",
+        "hr": "directHeartRate",
+        "cadence": "directRunCadence",
+    }
+
+    series: dict[str, list] = {name: [] for name in wanted}
+    for point in raw.get("activityDetailMetrics") or []:
+        metrics = point.get("metrics") or []
+        for name, key in wanted.items():
+            idx = index_by_key.get(key)
+            value = metrics[idx] if idx is not None and idx < len(metrics) else None
+            series[name].append(value)
+
+    geo = raw.get("geoPolylineDTO") or {}
+    route = [
+        {"lat": p.get("lat"), "lon": p.get("lon"), "alt": p.get("altitude")}
+        for p in (geo.get("polyline") or [])
+        if p.get("lat") is not None and p.get("lon") is not None
+    ]
+
+    return {
+        "activity_id": raw.get("activityId"),
+        "point_count": len(series["timestamp"]),
+        "series": series,
+        "route": route,
+    }
+
+
 class GarminHandler(BaseHTTPRequestHandler):
     """HTTP request handler for Garmin API endpoints."""
 
@@ -480,6 +597,61 @@ class GarminHandler(BaseHTTPRequestHandler):
             elif path == "/personal-records":
                 success, result, error = safe_api_call(api.get_personal_records)
                 self.send_json_response(result if success else {"error": error})
+
+            elif path == "/activities/range":
+                # get_activities_by_date pages through Garmin 20 at a time and
+                # filters by type upstream, so this stays one HTTP request even
+                # for a multi-year backfill.
+                start_date = get_date_param(query, "start", config.week_start)
+                end_date = get_date_param(query, "end", config.today)
+                activity_type = query.get("type", [None])[0]
+                success, result, error = safe_api_call(
+                    api.get_activities_by_date,
+                    start_date.isoformat(),
+                    end_date.isoformat(),
+                    activity_type,
+                    "asc",
+                )
+                if success:
+                    self.send_json_response(
+                        [format_activity_summary(a) for a in (result or [])]
+                    )
+                else:
+                    self.send_error_response(error or "Failed to fetch activities")
+
+            elif path.startswith("/activities/") and path.endswith("/details"):
+                activity_id = path.split("/")[2]
+                success, result, error = safe_api_call(
+                    api.get_activity_details, activity_id
+                )
+                if success and result:
+                    self.send_json_response(format_activity_details(result))
+                else:
+                    self.send_error_response(error or "Failed to fetch details")
+
+            elif path.startswith("/activities/") and path.endswith("/splits"):
+                activity_id = path.split("/")[2]
+                success, result, error = safe_api_call(
+                    api.get_activity_splits, activity_id
+                )
+                self.send_json_response(result if success else {"error": error})
+
+            elif path.startswith("/activities/") and path.endswith("/extras"):
+                # Weather and HR zones are separate upstream calls but always
+                # rendered together, so they're bundled to halve the round
+                # trips during backfill. Either may be absent (indoor runs have
+                # no weather), which is not an error.
+                activity_id = path.split("/")[2]
+                weather_ok, weather, _ = safe_api_call(
+                    api.get_activity_weather, activity_id
+                )
+                zones_ok, zones, _ = safe_api_call(
+                    api.get_activity_hr_in_timezones, activity_id
+                )
+                self.send_json_response({
+                    "weather": format_activity_weather(weather) if weather_ok else None,
+                    "hr_zones": zones if zones_ok else None,
+                })
 
             else:
                 self.send_error_response("Not found", 404)

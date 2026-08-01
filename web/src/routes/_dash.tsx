@@ -14,6 +14,7 @@ import {
 	ChevronUp,
 	User,
 	BarChart3,
+	Footprints,
 	Link2,
 	Calendar as CalendarIcon,
 	RefreshCw,
@@ -124,6 +125,14 @@ function RouteComponent() {
 										<Link to="/analytics">
 											<BarChart3 />
 											<span>Analytics</span>
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+								<SidebarMenuItem>
+									<SidebarMenuButton asChild tooltip="Exercise">
+										<Link to="/exercise">
+											<Footprints />
+											<span>Exercise</span>
 										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>

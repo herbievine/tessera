@@ -36,5 +36,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # database
 api/data/
 *.db
+
+# Garmin OAuth tokens (bind-mounted into the garmin service)
+data/
 *.db-shm
 *.db-wal

@@ -6,7 +6,10 @@ services:
     ports:
       - "3011:3011"
     env_file:
+      # GARMIN_EMAIL/GARMIN_PASSWORD live here, not in the root .env, and
+      # main.py reads them straight from the environment (no dotenv).
       - .env
+      - garmin-service/.env
     volumes:
       - ./garmin-service:/app
       - ./data/garmin-tokens:/data

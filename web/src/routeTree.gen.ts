@@ -16,9 +16,11 @@ import { Route as WithingsCallbackRouteImport } from './routes/withings/callback
 import { Route as DashProfileRouteImport } from './routes/_dash/profile'
 import { Route as DashIntegrationsRouteImport } from './routes/_dash/integrations'
 import { Route as DashHomeRouteImport } from './routes/_dash/home'
+import { Route as DashExerciseRouteImport } from './routes/_dash/exercise'
 import { Route as DashAnalyticsRouteImport } from './routes/_dash/analytics'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as DashExerciseActivityIdRouteImport } from './routes/_dash/exercise_.$activityId'
 
 const DashRoute = DashRouteImport.update({
   id: '/_dash',
@@ -53,6 +55,11 @@ const DashHomeRoute = DashHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => DashRoute,
 } as any)
+const DashExerciseRoute = DashExerciseRouteImport.update({
+  id: '/exercise',
+  path: '/exercise',
+  getParentRoute: () => DashRoute,
+} as any)
 const DashAnalyticsRoute = DashAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -68,26 +75,35 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
+const DashExerciseActivityIdRoute = DashExerciseActivityIdRouteImport.update({
+  id: '/exercise_/$activityId',
+  path: '/exercise/$activityId',
+  getParentRoute: () => DashRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/analytics': typeof DashAnalyticsRoute
+  '/exercise': typeof DashExerciseRoute
   '/home': typeof DashHomeRoute
   '/integrations': typeof DashIntegrationsRoute
   '/profile': typeof DashProfileRoute
   '/withings/callback': typeof WithingsCallbackRoute
+  '/exercise/$activityId': typeof DashExerciseActivityIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/analytics': typeof DashAnalyticsRoute
+  '/exercise': typeof DashExerciseRoute
   '/home': typeof DashHomeRoute
   '/integrations': typeof DashIntegrationsRoute
   '/profile': typeof DashProfileRoute
   '/withings/callback': typeof WithingsCallbackRoute
+  '/exercise/$activityId': typeof DashExerciseActivityIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,10 +113,12 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
   '/_dash/analytics': typeof DashAnalyticsRoute
+  '/_dash/exercise': typeof DashExerciseRoute
   '/_dash/home': typeof DashHomeRoute
   '/_dash/integrations': typeof DashIntegrationsRoute
   '/_dash/profile': typeof DashProfileRoute
   '/withings/callback': typeof WithingsCallbackRoute
+  '/_dash/exercise_/$activityId': typeof DashExerciseActivityIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,20 +127,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/analytics'
+    | '/exercise'
     | '/home'
     | '/integrations'
     | '/profile'
     | '/withings/callback'
+    | '/exercise/$activityId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/signup'
     | '/analytics'
+    | '/exercise'
     | '/home'
     | '/integrations'
     | '/profile'
     | '/withings/callback'
+    | '/exercise/$activityId'
   id:
     | '__root__'
     | '/'
@@ -131,10 +153,12 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/signup'
     | '/_dash/analytics'
+    | '/_dash/exercise'
     | '/_dash/home'
     | '/_dash/integrations'
     | '/_dash/profile'
     | '/withings/callback'
+    | '/_dash/exercise_/$activityId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -195,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashHomeRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_dash/exercise': {
+      id: '/_dash/exercise'
+      path: '/exercise'
+      fullPath: '/exercise'
+      preLoaderRoute: typeof DashExerciseRouteImport
+      parentRoute: typeof DashRoute
+    }
     '/_dash/analytics': {
       id: '/_dash/analytics'
       path: '/analytics'
@@ -216,6 +247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_dash/exercise_/$activityId': {
+      id: '/_dash/exercise_/$activityId'
+      path: '/exercise/$activityId'
+      fullPath: '/exercise/$activityId'
+      preLoaderRoute: typeof DashExerciseActivityIdRouteImport
+      parentRoute: typeof DashRoute
+    }
   }
 }
 
@@ -233,16 +271,20 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface DashRouteChildren {
   DashAnalyticsRoute: typeof DashAnalyticsRoute
+  DashExerciseRoute: typeof DashExerciseRoute
   DashHomeRoute: typeof DashHomeRoute
   DashIntegrationsRoute: typeof DashIntegrationsRoute
   DashProfileRoute: typeof DashProfileRoute
+  DashExerciseActivityIdRoute: typeof DashExerciseActivityIdRoute
 }
 
 const DashRouteChildren: DashRouteChildren = {
   DashAnalyticsRoute: DashAnalyticsRoute,
+  DashExerciseRoute: DashExerciseRoute,
   DashHomeRoute: DashHomeRoute,
   DashIntegrationsRoute: DashIntegrationsRoute,
   DashProfileRoute: DashProfileRoute,
+  DashExerciseActivityIdRoute: DashExerciseActivityIdRoute,
 }
 
 const DashRouteWithChildren = DashRoute._addFileChildren(DashRouteChildren)
