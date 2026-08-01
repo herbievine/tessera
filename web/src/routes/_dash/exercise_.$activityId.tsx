@@ -283,17 +283,20 @@ function ActivityCharts({ details }: { details: ActivityDetails }) {
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div>
-					<p className="mb-2 text-sm font-medium">Elevation</p>
+					<p className="mb-2 text-sm font-medium">Elevation (m)</p>
 					<ChartContainer config={metricConfig} className="h-[160px] w-full">
 						<AreaChart data={data}>
 							<CartesianGrid vertical={false} />
 							<XAxis {...xProps} />
+							{/* Garmin's elevations are unrounded floats (57.79999923706055);
+							    without a formatter Recharts renders the full value, which
+							    overflows the axis and gets clipped to its tail digits. */}
 							<YAxis
 								tickLine={false}
 								axisLine={false}
 								width={44}
-								unit=" m"
 								domain={["dataMin - 5", "dataMax + 5"]}
+								tickFormatter={(v: number) => String(Math.round(v))}
 							/>
 							<ChartTooltip content={<ChartTooltipContent />} />
 							<Area
@@ -309,7 +312,7 @@ function ActivityCharts({ details }: { details: ActivityDetails }) {
 				</div>
 
 				<div>
-					<p className="mb-2 text-sm font-medium">Pace</p>
+					<p className="mb-2 text-sm font-medium">Pace (min/km)</p>
 					<ChartContainer config={metricConfig} className="h-[160px] w-full">
 						<LineChart data={data}>
 							<CartesianGrid vertical={false} />
@@ -348,17 +351,20 @@ function ActivityCharts({ details }: { details: ActivityDetails }) {
 
 				{hasHr && (
 					<div>
-						<p className="mb-2 text-sm font-medium">Heart Rate</p>
+						<p className="mb-2 text-sm font-medium">Heart Rate (bpm)</p>
 						<ChartContainer config={metricConfig} className="h-[160px] w-full">
 							<LineChart data={data}>
 								<CartesianGrid vertical={false} />
 								<XAxis {...xProps} />
+								{/* The unit lives in the heading, not on every tick:
+								    Recharts lays the suffix out inside the tick box and
+								    wraps "192 bpm" onto two lines at any sane width. */}
 								<YAxis
 									tickLine={false}
 									axisLine={false}
 									width={44}
-									unit=" bpm"
 									domain={["dataMin - 5", "dataMax + 5"]}
+									tickFormatter={(v: number) => String(Math.round(v))}
 								/>
 								<ChartTooltip content={<ChartTooltipContent />} />
 								<Line
@@ -435,7 +441,7 @@ function HrZones({ zones }: { zones: NonNullable<ActivityDetails["hrZones"]> }) 
 								<div
 									className="h-full rounded-full"
 									style={{
-										width: "${pct}%",
+										width: `${pct}%`,
 										backgroundColor: PACE_COLORS[z.zoneNumber + 1] ?? "#888",
 									}}
 								/>

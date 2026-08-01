@@ -280,6 +280,9 @@ function RouteHeader() {
 		if (path === "/analytics") return "Analytics";
 		if (path === "/integrations") return "Integrations";
 		if (path === "/profile") return "Profile";
+		// Detail routes end in an opaque id, so the section name comes from
+		// the first segment rather than the last.
+		if (path.startsWith("/exercise")) return "Exercise";
 		const lastSegment = path.split("/").pop();
 		return lastSegment
 			? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1)
