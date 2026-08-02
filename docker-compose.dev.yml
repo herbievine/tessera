@@ -27,8 +27,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev.api
     ports:
-      - "3010:3010"
+      - "4001:4001"
     environment:
+      - PORT=${PORT:-4001}
       - API_URL=${API_URL}
       - FRONT_END_URL=${FRONT_END_URL}
       - DB_FILE_NAME=${DB_FILE_NAME}
@@ -47,7 +48,7 @@ services:
     working_dir: /app
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3010/api/auth/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:4001/api/auth/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -58,9 +59,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev.web
     ports:
-      - "3000:3000"
+      - "4000:4000"
     environment:
-      - VITE_API_URL=${API_URL:-http://localhost:3010}
+      - VITE_API_URL=${API_URL:-http://localhost:4001}
     volumes:
       - .:/app
       - web_node_modules:/app/node_modules
