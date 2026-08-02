@@ -65,6 +65,16 @@ export function formatPace(metresPerSecond: number | null): string {
 	return `${m}:${String(s).padStart(2, "0")} /km`;
 }
 
+/** Pace already in seconds per km, for axis ticks built from that scale. */
+export function formatPaceFromSeconds(secondsPerKm: number): string {
+	const m = Math.floor(secondsPerKm / 60);
+	const s = Math.round(secondsPerKm % 60);
+
+	if (s === 60) return `${m + 1}:00`;
+
+	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export function paceFromSplit(
 	distanceM: number | null,
 	durationS: number | null,

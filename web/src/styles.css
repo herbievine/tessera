@@ -38,6 +38,21 @@ code {
   --chart-3: oklch(0.59 0.20 277);
   --chart-4: oklch(0.51 0.23 277);
   --chart-5: oklch(0.46 0.21 277);
+
+  /* One hue per sport, so a stacked month reads at a glance. The --chart-*
+     ramp above is a single hue at five lightnesses, which is right for
+     magnitude and useless for identity - adjacent steps are
+     indistinguishable when stacked.
+
+     Blue/orange/aqua, validated as a set against this surface: every pair
+     stays separated under deuteranopia, protanopia and tritanopia (worst
+     ΔE 9.2). The obvious "trail = green" fails that test - green and
+     orange collapse into each other for protanopes. Dark-mode steps below
+     are chosen for the dark surface, not derived from these. */
+  --sport-running: #2a78d6;
+  --sport-trail: #eb6834;
+  --sport-strength: #1baf7a;
+
   --radius: 0;
   --sidebar: oklch(0.97 0.003 286);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
@@ -75,6 +90,12 @@ code {
   --chart-3: oklch(0.59 0.20 277);
   --chart-4: oklch(0.51 0.23 277);
   --chart-5: oklch(0.46 0.21 277);
+
+  /* The same three hues stepped for the dark card surface. */
+  --sport-running: #3987e5;
+  --sport-trail: #d95926;
+  --sport-strength: #199e70;
+
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.68 0.16 277);
@@ -95,6 +116,9 @@ code {
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-sport-running: var(--sport-running);
+  --color-sport-trail: var(--sport-trail);
+  --color-sport-strength: var(--sport-strength);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);

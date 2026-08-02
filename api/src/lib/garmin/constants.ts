@@ -1,3 +1,21 @@
+import type { ActivityKind } from "./types";
+
+/**
+ * Garmin's type keys, mapped onto the three sports the app renders. Its
+ * running variants (treadmill, indoor, virtual) are all rendered as running;
+ * anything not listed here is skipped at import and never queried.
+ */
+export const KIND_BY_TYPE_KEY: Record<string, ActivityKind> = {
+	running: "running",
+	treadmill_running: "running",
+	indoor_running: "running",
+	virtual_run: "running",
+	trail_running: "trail_running",
+	strength_training: "strength_training",
+};
+
+export const supportedTypeKeys = Object.keys(KIND_BY_TYPE_KEY);
+
 export const garminTypes = {
 	sleep_score: {
 		name: "Sleep Score",

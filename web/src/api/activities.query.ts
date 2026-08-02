@@ -1,5 +1,29 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
+import type {
+	ActivityKind,
+	ActivityLap,
+	ActivityMetrics,
+	ActivityRoutePoint,
+	ActivitySeries,
+	ActivityWeather,
+	ActivityZone,
+	ExerciseSet,
+} from "@tessera/api";
 
+export type {
+	ActivityKind,
+	ActivityLap,
+	ActivityMetrics,
+	ActivitySeries,
+	ActivityZone,
+	ExerciseSet,
+};
+
+/**
+ * Everything past the identity and timing fields lives in `metrics`, which
+ * is a union discriminated on the sport - a run has pace and running
+ * dynamics, a strength session has sets and reps.
+ */
 export type Activity = {
 	id: string;
 	garminActivityId: string;
@@ -9,60 +33,25 @@ export type Activity = {
 	startTimeGmt: string;
 	distanceM: number | null;
 	durationS: number | null;
-	movingDurationS: number | null;
-	elevationGainM: number | null;
-	elevationLossM: number | null;
-	averageSpeedMps: number | null;
-	maxSpeedMps: number | null;
-	calories: number | null;
-	averageHr: number | null;
-	maxHr: number | null;
-	averageCadence: number | null;
-	maxCadence: number | null;
-	steps: number | null;
-	vo2Max: number | null;
-	trainingEffectLabel: string | null;
-	locationName: string | null;
-	lapCount: number | null;
-};
-
-export type ActivitySplit = {
-	distance: number | null;
-	duration: number | null;
-	averageSpeed: number | null;
-	elevationGain: number | null;
-	elevationLoss: number | null;
-	averageHR: number | null;
-	maxHR: number | null;
+	metrics: ActivityMetrics | null;
 };
 
 export type ActivityDetails = {
 	pointCount: number | null;
-	route: { lat: number; lon: number; alt: number | null }[];
-	series: {
-		timestamp: (number | null)[];
-		distance_m: (number | null)[];
-		elevation_m: (number | null)[];
-		speed_mps: (number | null)[];
-		hr: (number | null)[];
-		cadence: (number | null)[];
-	};
-	splits: ActivitySplit[] | null;
-	weather: {
-		temp_c: number | null;
-		apparent_temp_c: number | null;
-		relative_humidity: number | null;
-		wind_speed_kph: number | null;
-		wind_direction_compass: string | null;
-		description: string | null;
-	} | null;
-	hrZones: { zoneNumber: number; secsInZone: number }[] | null;
+	route: ActivityRoutePoint[] | null;
+	series: ActivitySeries | null;
+	splits: ActivityLap[] | null;
+	weather: ActivityWeather | null;
+	hrZones: ActivityZone[] | null;
+	powerZones: ActivityZone[] | null;
+	exerciseSets: ExerciseSet[] | null;
 };
 
 export type MonthlyTotal = {
 	month: string;
 	running: number;
 	trailRunning: number;
+	strength: number;
 	km: number;
 };
 
@@ -83,19 +72,23 @@ async function get<T>(path: string): Promise<T> {
 	return res.json() as Promise<T>;
 }
 
-export function activitiesOptions(limit = 50, offset = 0) {
+export function activitiesOptions(
+	limit = 50,
+	offset = 0,
+	kind?: ActivityKind,
+) {
 	return queryOptions({
-		queryKey: ["activities", limit, offset],
+		queryKey: ["activities", limit, offset, kind ?? "all"],
 		queryFn: () =>
 			get<{ activities: Activity[]; total: number }>(
-				`/activities?limit=${limit}&offset=${offset}`,
+				`/activities?limit=${limit}&offset=${offset}${kind ? `&kind=${kind}` : ""}`,
 			),
 		staleTime: 30 * 1000,
 	});
 }
 
-export function useActivities(limit = 50, offset = 0) {
-	const { data, ...query } = useQuery(activitiesOptions(limit, offset));
+export function useActivities(limit = 50, offset = 0, kind?: ActivityKind) {
+	const { data, ...query } = useQuery(activitiesOptions(limit, offset, kind));
 
 	return {
 		activities: data?.activities ?? [],

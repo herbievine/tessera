@@ -14,6 +14,11 @@ import { cors } from "hono/cors";
 import { jwt } from "hono/jwt";
 import { logger } from "hono/logger";
 
+// Re-exported for the web app, which renders these payloads and would
+// otherwise restate every field. Type-only, so importing it pulls no server
+// code into the bundle.
+export type * from "./lib/garmin/types";
+
 if (!Bun.env.API_KEY) {
 	throw new Error("API_KEY environment variable is not set");
 }

@@ -10,6 +10,15 @@ import { id } from "../utils/id";
 import { defineRelations } from "drizzle-orm";
 import { measurementsMapping, withingsKeys } from "../lib/withings/constants";
 import { garminKeys } from "../lib/garmin/constants";
+import type {
+	ActivityLap,
+	ActivityMetrics,
+	ActivityRoutePoint,
+	ActivitySeries,
+	ActivityWeather,
+	ActivityZone,
+	ExerciseSet,
+} from "../lib/garmin/types";
 
 export const users = sqliteTable("users", {
 	id: text("id")
@@ -77,6 +86,12 @@ export const observations = sqliteTable(
 // at one instant, whereas an activity is a record with a dozen correlated
 // metrics. Summaries live here; the heavy per-point blobs live in
 // activityDetails so listing activities never has to read them.
+//
+// Only the fields the list and the monthly chart aggregate in SQL are
+// columns. The rest of Garmin's metrics differ per sport - a strength
+// session has sets and reps and no pace, a run has running dynamics and no
+// sets - so they live in `metrics` as a union discriminated on `kind`,
+// rather than as a wide table of columns that are null for most rows.
 export const activities = sqliteTable(
 	"activities",
 	{
@@ -86,6 +101,9 @@ export const activities = sqliteTable(
 
 		garminActivityId: text("garmin_activity_id").notNull(),
 		name: text("name"),
+		// Garmin's verbatim key (running, trail_running, treadmill_running,
+		// strength_training). `metrics.kind` folds the running variants
+		// together; this keeps the distinction.
 		typeKey: text("type_key").notNull(),
 
 		// Garmin reports both; local is what the user ran "at 7:13 AM", GMT is
@@ -95,28 +113,8 @@ export const activities = sqliteTable(
 
 		distanceM: real("distance_m"),
 		durationS: real("duration_s"),
-		movingDurationS: real("moving_duration_s"),
-		elapsedDurationS: real("elapsed_duration_s"),
-		elevationGainM: real("elevation_gain_m"),
-		elevationLossM: real("elevation_loss_m"),
-		averageSpeedMps: real("average_speed_mps"),
-		maxSpeedMps: real("max_speed_mps"),
-		calories: real("calories"),
-		averageHr: real("average_hr"),
-		maxHr: real("max_hr"),
-		averageCadence: real("average_cadence"),
-		maxCadence: real("max_cadence"),
-		steps: integer("steps"),
-		avgStrideLengthCm: real("avg_stride_length_cm"),
-		vo2Max: real("vo2_max"),
-		aerobicTrainingEffect: real("aerobic_training_effect"),
-		anaerobicTrainingEffect: real("anaerobic_training_effect"),
-		trainingEffectLabel: text("training_effect_label"),
-		locationName: text("location_name"),
-		startLatitude: real("start_latitude"),
-		startLongitude: real("start_longitude"),
-		hasPolyline: integer("has_polyline", { mode: "boolean" }),
-		lapCount: integer("lap_count"),
+
+		metrics: text("metrics", { mode: "json" }).$type<ActivityMetrics>(),
 
 		userId: text("user_id").notNull(),
 		integrationId: text("integration_id").notNull(),
@@ -141,12 +139,18 @@ export const activities = sqliteTable(
 export const activityDetails = sqliteTable("activity_details", {
 	activityId: text("activity_id").primaryKey(),
 
+	// Bumped when the shape of what we fetch changes, so rows cached under an
+	// older shape refetch on next view instead of rendering half a page.
+	version: integer("version").notNull().default(1),
+
 	pointCount: integer("point_count"),
-	route: text("route", { mode: "json" }),
-	series: text("series", { mode: "json" }),
-	splits: text("splits", { mode: "json" }),
-	weather: text("weather", { mode: "json" }),
-	hrZones: text("hr_zones", { mode: "json" }),
+	route: text("route", { mode: "json" }).$type<ActivityRoutePoint[]>(),
+	series: text("series", { mode: "json" }).$type<ActivitySeries>(),
+	splits: text("splits", { mode: "json" }).$type<ActivityLap[]>(),
+	weather: text("weather", { mode: "json" }).$type<ActivityWeather>(),
+	hrZones: text("hr_zones", { mode: "json" }).$type<ActivityZone[]>(),
+	powerZones: text("power_zones", { mode: "json" }).$type<ActivityZone[]>(),
+	exerciseSets: text("exercise_sets", { mode: "json" }).$type<ExerciseSet[]>(),
 
 	fetchedAt: integer("fetched_at", { mode: "timestamp" }).$defaultFn(
 		() => new Date(),

@@ -204,40 +204,107 @@ def format_hrv_data(raw: list[dict]) -> list[dict] | None:
     return timeseries
 
 
+def pick(raw: dict, *keys):
+    """First non-null value among keys.
+
+    Garmin names the same metric differently depending on where it comes
+    from: the activity list DTO uses flat names like `avgPower`, while the
+    per-activity summaryDTO uses `averagePower`/`avgPower` inconsistently.
+    Both feed the same stored fields, so lookups accept either spelling.
+    """
+    for key in keys:
+        value = raw.get(key)
+        if value is not None:
+            return value
+    return None
+
+
 def format_activity_summary(raw: dict) -> dict:
     """Flatten a Garmin activity summary into the fields we store.
 
     Garmin nests type/event under objects and omits most metric fields
     entirely for activities that don't have them (no HR strap, indoor runs
-    with no GPS), so every lookup here tolerates a missing key.
+    with no GPS, no running dynamics on a strength session), so every lookup
+    here tolerates a missing key.
+
+    Accepts both the activity list DTO and a `summaryDTO` from the
+    per-activity endpoint; the latter carries fields the list omits.
     """
-    activity_type = raw.get("activityType") or {}
+    # The list DTO nests the type under `activityType`; the per-activity
+    # endpoint calls the same object `activityTypeDTO`.
+    activity_type = raw.get("activityType") or raw.get("activityTypeDTO") or {}
 
     return {
         "activity_id": raw.get("activityId"),
         "name": raw.get("activityName"),
         "type_key": activity_type.get("typeKey"),
         "start_time_local": raw.get("startTimeLocal"),
-        "start_time_gmt": raw.get("startTimeGMT"),
+        "start_time_gmt": pick(raw, "startTimeGMT", "startTimeGmt"),
         "distance_m": raw.get("distance"),
         "duration_s": raw.get("duration"),
         "moving_duration_s": raw.get("movingDuration"),
         "elapsed_duration_s": raw.get("elapsedDuration"),
         "elevation_gain_m": raw.get("elevationGain"),
         "elevation_loss_m": raw.get("elevationLoss"),
-        "average_speed_mps": raw.get("averageSpeed"),
+        "min_elevation_m": raw.get("minElevation"),
+        "max_elevation_m": raw.get("maxElevation"),
+        "average_speed_mps": pick(raw, "averageSpeed", "avgSpeed"),
         "max_speed_mps": raw.get("maxSpeed"),
+        "avg_moving_speed_mps": pick(raw, "averageMovingSpeed", "avgMovingSpeed"),
+        "avg_grade_adjusted_speed_mps": pick(
+            raw, "avgGradeAdjustedSpeed", "averageGradeAdjustedSpeed"
+        ),
         "calories": raw.get("calories"),
-        "average_hr": raw.get("averageHR"),
-        "max_hr": raw.get("maxHR"),
-        "average_cadence": raw.get("averageRunningCadenceInStepsPerMinute"),
-        "max_cadence": raw.get("maxRunningCadenceInStepsPerMinute"),
+        "resting_calories": raw.get("bmrCalories"),
+        "average_hr": pick(raw, "averageHR", "avgHr"),
+        "max_hr": pick(raw, "maxHR", "maxHr"),
+        "average_cadence": pick(
+            raw, "averageRunningCadenceInStepsPerMinute", "averageRunCadence"
+        ),
+        "max_cadence": pick(
+            raw, "maxRunningCadenceInStepsPerMinute", "maxRunCadence"
+        ),
         "steps": raw.get("steps"),
-        "avg_stride_length_cm": raw.get("avgStrideLength"),
-        "vo2_max": raw.get("vO2MaxValue"),
-        "aerobic_training_effect": raw.get("aerobicTrainingEffect"),
+        "avg_stride_length_cm": pick(raw, "avgStrideLength", "strideLength"),
+        "avg_vertical_oscillation_cm": pick(
+            raw, "avgVerticalOscillation", "verticalOscillation"
+        ),
+        "avg_vertical_ratio": pick(raw, "avgVerticalRatio", "verticalRatio"),
+        "avg_ground_contact_time_ms": pick(
+            raw, "avgGroundContactTime", "groundContactTime"
+        ),
+        "avg_ground_contact_balance": pick(
+            raw, "avgGroundContactBalance", "groundContactBalanceLeft"
+        ),
+        "avg_power_w": pick(raw, "avgPower", "averagePower"),
+        "max_power_w": raw.get("maxPower"),
+        "normalized_power_w": pick(raw, "normPower", "normalizedPower"),
+        "avg_respiration_rate": pick(raw, "avgRespirationRate", "averageRespirationRate"),
+        "min_respiration_rate": raw.get("minRespirationRate"),
+        "max_respiration_rate": raw.get("maxRespirationRate"),
+        "water_estimated_ml": raw.get("waterEstimated"),
+        "moderate_intensity_minutes": raw.get("moderateIntensityMinutes"),
+        "vigorous_intensity_minutes": raw.get("vigorousIntensityMinutes"),
+        "body_battery_diff": raw.get("differenceBodyBattery"),
+        "activity_training_load": pick(
+            raw, "activityTrainingLoad", "trainingLoad"
+        ),
+        "vo2_max": pick(raw, "vO2MaxValue", "vo2MaxValue"),
+        "aerobic_training_effect": pick(
+            raw, "aerobicTrainingEffect", "trainingEffect"
+        ),
         "anaerobic_training_effect": raw.get("anaerobicTrainingEffect"),
+        "aerobic_training_effect_message": raw.get("aerobicTrainingEffectMessage"),
+        "anaerobic_training_effect_message": raw.get("anaerobicTrainingEffectMessage"),
         "training_effect_label": raw.get("trainingEffectLabel"),
+        # Self-evaluation: 0-100 on both scales, entered by hand in Connect
+        # and therefore absent on most activities.
+        "workout_feel": pick(raw, "directWorkoutFeel", "workoutFeel"),
+        "workout_rpe": pick(raw, "directWorkoutRpe", "workoutRpe"),
+        # Strength only.
+        "total_sets": raw.get("totalSets"),
+        "active_sets": raw.get("activeSets"),
+        "total_reps": raw.get("totalReps"),
         "location_name": raw.get("locationName"),
         "start_latitude": raw.get("startLatitude"),
         "start_longitude": raw.get("startLongitude"),
@@ -289,13 +356,27 @@ def format_activity_details(raw: dict) -> dict:
         if d.get("key") is not None and d.get("metricsIndex") is not None
     }
 
+    # Cadence is published twice: `directRunCadence` counts one leg and
+    # `directDoubleCadence` counts both, so they differ by a factor of two.
+    # Both are kept rather than picked here, because which one a watch fills
+    # in varies and the caller can tell them apart by which array has data.
     wanted = {
         "timestamp": "directTimestamp",
         "distance_m": "sumDistance",
         "elevation_m": "directElevation",
         "speed_mps": "directSpeed",
+        "grade_adjusted_speed_mps": "directGradeAdjustedSpeed",
         "hr": "directHeartRate",
         "cadence": "directRunCadence",
+        "double_cadence": "directDoubleCadence",
+        "power_w": "directPower",
+        "stride_length_cm": "directStrideLength",
+        "vertical_oscillation_cm": "directVerticalOscillation",
+        "vertical_ratio": "directVerticalRatio",
+        "ground_contact_time_ms": "directGroundContactTime",
+        "ground_contact_balance": "directGroundContactBalance",
+        "respiration_rate": "directRespirationRate",
+        "performance_condition": "directPerformanceCondition",
     }
 
     series: dict[str, list] = {name: [] for name in wanted}
@@ -305,6 +386,16 @@ def format_activity_details(raw: dict) -> dict:
             idx = index_by_key.get(key)
             value = metrics[idx] if idx is not None and idx < len(metrics) else None
             series[name].append(value)
+
+    # A watch that never recorded a metric still yields a full-length array of
+    # nulls, one per sample. Dropping those keeps the stored payload to the
+    # metrics the activity actually has - on a strength session that is most
+    # of them, and the arrays run to thousands of points.
+    series = {
+        name: values
+        for name, values in series.items()
+        if name == "timestamp" or any(v is not None for v in values)
+    }
 
     geo = raw.get("geoPolylineDTO") or {}
     route = [
@@ -319,6 +410,91 @@ def format_activity_details(raw: dict) -> dict:
         "series": series,
         "route": route,
     }
+
+
+def format_activity_splits(raw: dict | None) -> list[dict]:
+    """Flatten Garmin's per-lap DTOs to the columns the laps table shows.
+
+    Laps carry the same running-dynamics metrics as the activity summary but
+    under yet another set of names, and a lap on a strength session carries
+    almost none of them.
+    """
+    if not raw:
+        return []
+
+    laps = []
+    for lap in raw.get("lapDTOs") or []:
+        laps.append({
+            "lap_index": lap.get("lapIndex"),
+            "start_time_gmt": lap.get("startTimeGMT"),
+            "distance_m": lap.get("distance"),
+            "duration_s": lap.get("duration"),
+            "moving_duration_s": lap.get("movingDuration"),
+            "elapsed_duration_s": lap.get("elapsedDuration"),
+            "average_speed_mps": pick(lap, "averageSpeed", "avgSpeed"),
+            "max_speed_mps": lap.get("maxSpeed"),
+            "avg_grade_adjusted_speed_mps": pick(
+                lap, "avgGradeAdjustedSpeed", "averageGradeAdjustedSpeed"
+            ),
+            "elevation_gain_m": lap.get("elevationGain"),
+            "elevation_loss_m": lap.get("elevationLoss"),
+            "average_hr": pick(lap, "averageHR", "avgHr"),
+            "max_hr": pick(lap, "maxHR", "maxHr"),
+            "average_cadence": pick(
+                lap, "averageRunCadence", "averageRunningCadenceInStepsPerMinute"
+            ),
+            "max_cadence": pick(
+                lap, "maxRunCadence", "maxRunningCadenceInStepsPerMinute"
+            ),
+            "avg_power_w": pick(lap, "averagePower", "avgPower"),
+            "max_power_w": lap.get("maxPower"),
+            "normalized_power_w": pick(lap, "normalizedPower", "normPower"),
+            "avg_stride_length_cm": pick(lap, "strideLength", "avgStrideLength"),
+            "avg_ground_contact_time_ms": pick(
+                lap, "groundContactTime", "avgGroundContactTime"
+            ),
+            "avg_ground_contact_balance": pick(
+                lap, "groundContactBalanceLeft", "avgGroundContactBalance"
+            ),
+            "avg_vertical_oscillation_cm": pick(
+                lap, "verticalOscillation", "avgVerticalOscillation"
+            ),
+            "avg_vertical_ratio": pick(lap, "verticalRatio", "avgVerticalRatio"),
+            "calories": lap.get("calories"),
+            "intensity_type": lap.get("intensityType"),
+        })
+
+    return laps
+
+
+def format_exercise_sets(raw: dict | None) -> list[dict]:
+    """Flatten a strength session's sets.
+
+    Garmin reports weight in grams and names the movement inside a nested
+    exercise list, where `name` is null for anything it recognised only by
+    category (a generic "BENCH_PRESS" with no variation).
+    """
+    if not raw:
+        return []
+
+    sets = []
+    for index, item in enumerate(raw.get("exerciseSets") or []):
+        exercises = item.get("exercises") or []
+        exercise = exercises[0] if exercises else {}
+        weight_g = item.get("weight")
+
+        sets.append({
+            "set_index": index + 1,
+            "set_type": item.get("setType"),
+            "category": exercise.get("category"),
+            "name": exercise.get("name"),
+            "reps": item.get("repetitionCount"),
+            "weight_kg": None if weight_g is None else round(weight_g / 1000, 2),
+            "duration_s": item.get("duration"),
+            "start_time_gmt": item.get("startTime"),
+        })
+
+    return sets
 
 
 class GarminHandler(BaseHTTPRequestHandler):
@@ -634,23 +810,48 @@ class GarminHandler(BaseHTTPRequestHandler):
                 success, result, error = safe_api_call(
                     api.get_activity_splits, activity_id
                 )
-                self.send_json_response(result if success else {"error": error})
+                if success:
+                    self.send_json_response({"laps": format_activity_splits(result)})
+                else:
+                    self.send_error_response(error or "Failed to fetch splits")
 
             elif path.startswith("/activities/") and path.endswith("/extras"):
-                # Weather and HR zones are separate upstream calls but always
-                # rendered together, so they're bundled to halve the round
-                # trips during backfill. Either may be absent (indoor runs have
-                # no weather), which is not an error.
+                # Every part of this is a separate upstream call but they're
+                # always rendered together, so they're bundled to keep the
+                # first view of an activity to three round trips rather than
+                # seven. Any part may be absent - indoor runs have no weather,
+                # a run has no exercise sets, a strength session has no power
+                # zones - which is not an error.
                 activity_id = path.split("/")[2]
                 weather_ok, weather, _ = safe_api_call(
                     api.get_activity_weather, activity_id
                 )
-                zones_ok, zones, _ = safe_api_call(
+                hr_ok, hr_zones, _ = safe_api_call(
                     api.get_activity_hr_in_timezones, activity_id
                 )
+                power_ok, power_zones, _ = safe_api_call(
+                    api.get_activity_power_in_timezones, activity_id
+                )
+                sets_ok, exercise_sets, _ = safe_api_call(
+                    api.get_activity_exercise_sets, activity_id
+                )
+                # The per-activity summary carries fields the list DTO omits
+                # (self-evaluation, respiration, body battery impact), so it
+                # backfills the stored summary on first view.
+                full_ok, full, _ = safe_api_call(api.get_activity, activity_id)
+                summary = None
+                if full_ok and full:
+                    merged = {**(full.get("summaryDTO") or {}), **full}
+                    summary = format_activity_summary(merged)
+
                 self.send_json_response({
                     "weather": format_activity_weather(weather) if weather_ok else None,
-                    "hr_zones": zones if zones_ok else None,
+                    "hr_zones": hr_zones if hr_ok else None,
+                    "power_zones": power_zones if power_ok else None,
+                    "exercise_sets": (
+                        format_exercise_sets(exercise_sets) if sets_ok else None
+                    ),
+                    "summary": summary,
                 })
 
             else:

@@ -169,8 +169,12 @@ export default app
 
 		// Activities are keyed and range-resolved independently of the
 		// observation import, so a failure here shouldn't discard the
-		// measurements that already landed.
-		const activities = await client.syncActivities(integration);
+		// measurements that already landed. A startDate re-imports that whole
+		// window rather than resuming from the newest stored activity, which
+		// is how a backfill after a schema change is driven.
+		const activities = await client.syncActivities(integration, {
+			from: startDate ? dayjs(startDate).toDate() : undefined,
+		});
 
 		return c.json({
 			imported: data.value,

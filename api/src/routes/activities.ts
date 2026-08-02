@@ -5,27 +5,31 @@ import utc from "dayjs/plugin/utc";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { GarminClient } from "../lib/garmin/sdk";
+import { KIND_BY_TYPE_KEY, supportedTypeKeys } from "../lib/garmin/constants";
 
 dayjs.extend(utc);
 
 const app = new Hono();
-
-// Garmin models trail running as a child of running, and its type filter
-// returns both. Grouping them keeps the Exercise tab's "running" consistent
-// with what the backfill actually imported.
-const runningTypes = ["running", "trail_running"];
 
 export default app
 	.get("/", async (c) => {
 		const token = c.get("jwtPayload");
 		const startDate = c.req.query("startDate");
 		const endDate = c.req.query("endDate");
+		const kind = c.req.query("kind");
 		const limit = Number(c.req.query("limit") ?? 50);
 		const offset = Number(c.req.query("offset") ?? 0);
 
+		// `kind` narrows to one sport; without it the list spans all three.
+		// Filtering on the type keys rather than metrics.kind keeps this on
+		// the (userId, typeKey, startTimeGmt) index.
+		const typeKeys = kind
+			? supportedTypeKeys.filter((key) => KIND_BY_TYPE_KEY[key] === kind)
+			: supportedTypeKeys;
+
 		const filters = [
 			eq(schema.activities.userId, token.sub),
-			inArray(schema.activities.typeKey, runningTypes),
+			inArray(schema.activities.typeKey, typeKeys),
 		];
 
 		if (startDate) {
@@ -79,7 +83,7 @@ export default app
 			.where(
 				and(
 					eq(schema.activities.userId, token.sub),
-					inArray(schema.activities.typeKey, runningTypes),
+					inArray(schema.activities.typeKey, supportedTypeKeys),
 					gte(schema.activities.startTimeGmt, from.toDate()),
 				),
 			)
@@ -93,27 +97,46 @@ export default app
 				),
 			);
 
-		// Months with no runs are absent from the GROUP BY, but the chart needs
-		// them present as zeroes or the bars misalign against the time axis.
+		// Months with no activity are absent from the GROUP BY, but the chart
+		// needs them present as zeroes or the bars misalign against the axis.
 		const buckets: Record<
 			string,
-			{ month: string; running: number; trailRunning: number; km: number }
+			{
+				month: string;
+				running: number;
+				trailRunning: number;
+				strength: number;
+				km: number;
+			}
 		> = {};
 
 		for (let i = 0; i < months; i++) {
 			const month = from.add(i, "month").format("YYYY-MM");
-			buckets[month] = { month, running: 0, trailRunning: 0, km: 0 };
+			buckets[month] = {
+				month,
+				running: 0,
+				trailRunning: 0,
+				strength: 0,
+				km: 0,
+			};
 		}
 
 		for (const row of rows) {
 			const bucket = buckets[row.month];
 			if (!bucket) continue;
 
-			if (row.typeKey === "trail_running") {
+			const kind = KIND_BY_TYPE_KEY[row.typeKey];
+
+			if (kind === "trail_running") {
 				bucket.trailRunning += row.totalMinutes ?? 0;
+			} else if (kind === "strength_training") {
+				bucket.strength += row.totalMinutes ?? 0;
 			} else {
 				bucket.running += row.totalMinutes ?? 0;
 			}
+
+			// Distance only means something for the two running kinds; a
+			// strength session's is null and sums to nothing.
 			bucket.km += row.totalKm ?? 0;
 		}
 
@@ -140,11 +163,15 @@ export default app
 		// Details are fetched from Garmin on first view and cached from then
 		// on, so this is slow once per activity and instant thereafter. A
 		// failure still returns the summary rather than erroring the page.
-		const details = await new GarminClient().fetchActivityDetails(activity);
+		// That first fetch also completes the summary metrics, so the
+		// activity is returned with whatever it filled in.
+		const result = await new GarminClient().fetchActivityDetails(activity);
 
 		return c.json({
-			activity,
-			details: details.isErr() ? null : details.value,
-			detailsError: details.isErr() ? details.error : undefined,
+			activity: result.isErr()
+				? activity
+				: { ...activity, metrics: result.value.metrics },
+			details: result.isErr() ? null : result.value.details,
+			detailsError: result.isErr() ? result.error : undefined,
 		});
 	});
