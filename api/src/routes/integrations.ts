@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
 
@@ -15,7 +15,54 @@ export default app
 			},
 		});
 
-		return c.json(integrations);
+		// There is no lastSyncedAt column: a sync is only ever observable as the
+		// rows it wrote, so the newest row's createdAt is the last sync. Two
+		// grouped queries rather than one per integration.
+		const [observationSyncs, activitySyncs] = await Promise.all([
+			db
+				.select({
+					integrationId: schema.observations.integrationId,
+					source: schema.observations.source,
+					lastAt: sql<number | null>`max(${schema.observations.createdAt})`,
+				})
+				.from(schema.observations)
+				.where(eq(schema.observations.userId, token.sub))
+				.groupBy(schema.observations.integrationId, schema.observations.source),
+			db
+				.select({
+					integrationId: schema.activities.integrationId,
+					lastAt: sql<number | null>`max(${schema.activities.createdAt})`,
+				})
+				.from(schema.activities)
+				.where(eq(schema.activities.userId, token.sub))
+				.groupBy(schema.activities.integrationId),
+		]);
+
+		return c.json(
+			integrations.map((integration) => {
+				const seconds = [
+					// Rows written before integrationId was recorded consistently are
+					// still attributable by vendor, the same fallback the delete uses.
+					...observationSyncs
+						.filter(
+							(r) =>
+								r.integrationId === integration.id ||
+								r.source === integration.vendor,
+						)
+						.map((r) => r.lastAt),
+					...activitySyncs
+						.filter((r) => r.integrationId === integration.id)
+						.map((r) => r.lastAt),
+				].filter((v): v is number => typeof v === "number");
+
+				return {
+					...integration,
+					lastSyncedAt: seconds.length
+						? new Date(Math.max(...seconds) * 1000)
+						: null,
+				};
+			}),
+		);
 	})
 	.delete("/:id", async (c) => {
 		const token = c.get("jwtPayload");

@@ -47,6 +47,7 @@ type Integration = {
 	id: string;
 	vendor: string;
 	createdAt: Date | string | null;
+	lastSyncedAt: Date | string | null;
 };
 
 const availableIntegrations = [
@@ -231,9 +232,11 @@ function RouteComponent() {
 		deleteIntegration(id);
 	};
 
+	// "16th July 2026" rather than a locale-dependent 7/16/2026, which reads
+	// as 7th of the 16th month to half the world.
 	const formatDate = (date: Date | string | null) => {
 		if (!date) return "N/A";
-		return new Date(date).toLocaleDateString();
+		return format(new Date(date), "do MMMM yyyy");
 	};
 
 	const connectedVendors = new Set(
@@ -275,7 +278,11 @@ function RouteComponent() {
 												{integration.vendor}
 											</p>
 											<p className="text-xs text-muted-foreground">
-												Connected {formatDate(integration.createdAt)}
+												Connected {formatDate(integration.createdAt)} &middot; Last
+												synced{" "}
+												{integration.lastSyncedAt
+													? formatDate(integration.lastSyncedAt)
+													: "never"}
 											</p>
 										</div>
 									</div>
