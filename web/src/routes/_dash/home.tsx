@@ -189,7 +189,7 @@ function HRVChart({
 						/>
 						{hasBandData && (
 							<Area
-								type="monotone"
+								type="linear"
 								dataKey="band"
 								stroke="none"
 								fill="green"
@@ -201,7 +201,7 @@ function HRVChart({
 						)}
 						<Line
 							dataKey="hrv"
-              type="natural"
+							type="linear"
 							stroke="var(--chart-2)"
 							strokeWidth={2}
 							isAnimationActive={false}
@@ -292,12 +292,12 @@ function RouteComponent() {
 								/>
 								<Line
 									dataKey="weight"
-									type="natural"
-              		stroke="var(--chart-2)"
-              		strokeWidth={2}
-              		isAnimationActive={false}
-              		connectNulls={true}
-              		dot={false}
+									type="linear"
+									stroke="var(--chart-2)"
+									strokeWidth={2}
+									isAnimationActive={false}
+									connectNulls={true}
+									dot={false}
 								/>
 							</LineChart>
 						</ChartContainer>
